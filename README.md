@@ -1,6 +1,6 @@
 # 🏥 Quản Lý Phòng Khám Da Liễu
 
-![Clinic Management System](https://github.com/luongtrinh2004/Patient_Management/blob/main/public/img/readme.png)
+![Clinic Management System](https://github.com/hungpkaa/Patient_Management/blob/main/public/img/readme.png)
 
 ## 🚀 Giới thiệu
 
