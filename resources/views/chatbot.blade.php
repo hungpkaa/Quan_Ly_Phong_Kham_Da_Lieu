@@ -104,7 +104,9 @@ function sendMessage() {
         .then(data => {
             console.log("API Response:", data);
 
-            let botResponse = data.message || "Lỗi phản hồi từ chatbot.";
+           let botResponse = data.message 
+    ? data.message.replace(/\n/g, "<br>")
+    : "Lỗi phản hồi từ chatbot.";
 
             // Xóa hiệu ứng "đang gõ..."
             chatBox.removeChild(typingIndicator);
@@ -113,12 +115,21 @@ function sendMessage() {
             chatBox.innerHTML += `<div class="bot-message"><p class="chat-bubble bot">${botResponse}</p></div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         })
-        .catch(error => {
-            console.error("Lỗi gửi tin nhắn:", error);
-            chatBox.removeChild(typingIndicator);
-            chatBox.innerHTML +=
-                `<div class="bot-message"><p class="chat-bubble bot">Lỗi khi gửi tin nhắn. Vui lòng thử lại!</p></div>`;
-        });
+       .catch(error => {
+    console.error("Lỗi gửi tin nhắn:", error);
+
+    if (chatBox.contains(typingIndicator)) {
+        chatBox.removeChild(typingIndicator);
+    }
+
+    chatBox.innerHTML += `
+        <div class="bot-message">
+            <p class="chat-bubble bot">
+                Không thể kết nối tới AI.
+            </p>
+        </div>
+    `;
+});
 
     // Xóa input
     document.getElementById("user-message").value = "";
