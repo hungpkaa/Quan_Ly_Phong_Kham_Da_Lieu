@@ -13,6 +13,10 @@ class CreateMedicalRecordsTable extends Migration
      */
     public function up()
     {
+        if (Schema::hasTable('medical_records')) {
+            return;
+        }
+
         Schema::create('medical_records', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('doctor_id');
@@ -24,7 +28,7 @@ class CreateMedicalRecordsTable extends Migration
             $table->string('cccd');              // Số căn cước công dân
             $table->string('service')->nullable(); // Dịch vụ khám/chữa bệnh
             $table->date('exam_date');          // Ngày khám: nếu bệnh nhân đến đúng giờ, chuyển ngày hẹn khám từ lịch hẹn vào đây
-            $table->decimal('cost', 8, 2)->nullable(); // Chi phí khám/chữa bệnh
+            $table->decimal('cost', 15, 2)->nullable(); // Chi phí khám/chữa bệnh
             $table->enum('status', ['paid', 'unpaid'])->default('unpaid'); // Trạng thái thanh toán
             $table->text('diagnosis');          // Chẩn đoán
             $table->text('prescription')->nullable(); // Toa thuốc

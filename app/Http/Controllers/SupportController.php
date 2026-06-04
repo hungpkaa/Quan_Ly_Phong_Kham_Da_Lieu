@@ -26,15 +26,13 @@ class SupportController extends Controller
 
         Support::create($request->all());
 
-        return redirect()->route('support.create')
-            ->with('success', 'Yêu cầu hỗ trợ của bạn đã được gửi!');
+        return redirect()->route('support.create')->with('success', 'Yêu cầu hỗ trợ của bạn đã được gửi!');
     }
 
     // Admin xem danh sách hỗ trợ
     public function index()
     {
         $supports = Support::all();
-
         return view('role.managesupport', compact('supports'));
     }
 
@@ -42,10 +40,8 @@ class SupportController extends Controller
     public function destroy($id)
     {
         $support = Support::findOrFail($id);
-
         $support->delete();
 
-        return redirect()->route('admin.supports.index')
-            ->with('success', 'Đã xóa yêu cầu hỗ trợ.');
+        return redirect()->route('role.managesupport')->with('success', 'Đã xóa yêu cầu hỗ trợ.');
     }
 }

@@ -13,6 +13,10 @@ class AddServicesMedicinesToInvoices extends Migration
      */
     public function up()
     {
+        if (!Schema::hasTable('invoices') || Schema::hasColumn('invoices', 'services_medicines')) {
+            return;
+        }
+
         Schema::table('invoices', function (Blueprint $table) {
             $table->text('services_medicines')
                 ->charset('utf8mb4')
@@ -29,6 +33,10 @@ class AddServicesMedicinesToInvoices extends Migration
      */
     public function down()
     {
+        if (!Schema::hasTable('invoices') || !Schema::hasColumn('invoices', 'services_medicines')) {
+            return;
+        }
+
         Schema::table('invoices', function (Blueprint $table) {
             $table->dropColumn('services_medicines');
         });

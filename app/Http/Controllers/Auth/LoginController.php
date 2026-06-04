@@ -27,6 +27,8 @@ class LoginController extends Controller
                 return redirect('/admin/dashboard');
             } elseif ($role === 'admindoctor') {
                 return redirect('/admindoctor/dashboard');
+            } elseif ($role === 'patient') {
+                return redirect('/home');
             }
 
             return redirect('/home'); // Mặc định nếu không có role

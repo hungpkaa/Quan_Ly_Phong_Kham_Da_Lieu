@@ -47,7 +47,7 @@
 ### 📌 1. Clone repository
 
 ```sh
-git clone https://github.com/hungpkaa/Quan_Ly_Phong_Kham_Da_Lieu.git
+git clone https://github.com/luongtrinh2004/Quan_Ly_Phong_Kham_Da_Lieu
 cd ...
 ```
 
@@ -135,7 +135,7 @@ https://31c4-118-70-185-2.ngrok-free.app
 ### 🔹 Link repo
 
 ```sh
-https://github.com/hungpkaa/Quan_Ly_Phong_Kham_Da_Lieu.git
+https://github.com/luongtrinh2004/Quan_Ly_Phong_Kham_Da_Lieu
 
 ```
 

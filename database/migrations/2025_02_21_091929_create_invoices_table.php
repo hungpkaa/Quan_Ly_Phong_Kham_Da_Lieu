@@ -9,6 +9,10 @@ class CreateInvoicesTable extends Migration
 {
     public function up()
     {
+        if (Schema::hasTable('invoices')) {
+            return;
+        }
+
         Schema::create('invoices', function (Blueprint $table) {
             $table->id();
             $table->string('patient_name');       // Tên bệnh nhân

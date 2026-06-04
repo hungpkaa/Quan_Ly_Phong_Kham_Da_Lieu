@@ -12,6 +12,7 @@ class Appointment extends Model
     protected $table = 'appointments';
 
     protected $fillable = [
+        'user_id',
         'doctor_id',
         'name',
         'email',
@@ -32,12 +33,17 @@ class Appointment extends Model
         return $this->belongsTo(Doctor::class, 'doctor_id');
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     /**
      * Quan hệ với bệnh nhân
      */
     public function patient()
     {
-        return $this->belongsTo(Patient::class, 'patient_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -53,7 +59,7 @@ class Appointment extends Model
      */
     public function scopeForPatient($query, $patientId)
     {
-        return $query->where('patient_id', $patientId);
+        return $query->where('user_id', $patientId);
     }
 
     /**

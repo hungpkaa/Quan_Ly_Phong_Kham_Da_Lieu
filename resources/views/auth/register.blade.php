@@ -16,19 +16,16 @@
             <input type="email" name="email" id="email" class="form-control" required>
         </div>
         <div class="mb-3">
+            <label for="phone" class="form-label">S&#7889; &#273;i&#7879;n tho&#7841;i</label>
+            <input type="text" name="phone" id="phone" class="form-control" value="{{ old('phone') }}" required>
+        </div>
+        <div class="mb-3">
             <label for="password" class="form-label">Mật khẩu</label>
             <input type="password" name="password" id="password" class="form-control" required>
         </div>
         <div class="mb-3">
             <label for="password_confirmation" class="form-label">Xác nhận mật khẩu</label>
             <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
-        </div>
-        <div class="mb-3">
-            <label for="role" class="form-label">Vai trò</label>
-            <select name="role" id="role" class="form-select" required>
-                <option value="admin">Admin</option>
-
-            </select>
         </div>
         <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
     </form>

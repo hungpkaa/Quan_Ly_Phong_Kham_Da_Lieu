@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddShiftToAppointmentsTable extends Migration
+class AddUserIdToAppointmentsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,12 @@ class AddShiftToAppointmentsTable extends Migration
      */
     public function up()
     {
-        if (!Schema::hasTable('appointments') || Schema::hasColumn('appointments', 'shift')) {
+        if (!Schema::hasTable('appointments') || Schema::hasColumn('appointments', 'user_id')) {
             return;
         }
 
         Schema::table('appointments', function (Blueprint $table) {
-            $table->string('shift')->after('appointment_date'); // Thêm cột shift vào bảng appointments
+            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->nullOnDelete();
         });
     }
 
@@ -29,12 +29,13 @@ class AddShiftToAppointmentsTable extends Migration
      */
     public function down()
     {
-        if (!Schema::hasTable('appointments') || !Schema::hasColumn('appointments', 'shift')) {
+        if (!Schema::hasTable('appointments') || !Schema::hasColumn('appointments', 'user_id')) {
             return;
         }
 
         Schema::table('appointments', function (Blueprint $table) {
-            $table->dropColumn('shift'); // Xóa cột shift khỏi bảng appointments
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
         });
     }
 }

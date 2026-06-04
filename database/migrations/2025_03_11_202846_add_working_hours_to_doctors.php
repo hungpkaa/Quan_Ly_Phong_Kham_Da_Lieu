@@ -13,9 +13,11 @@ class AddWorkingHoursToDoctors extends Migration
      */
     public function up()
     {
-        Schema::table('doctors', function (Blueprint $table) {
-            $table->json('working_hours')->nullable()->after('image');
-        });
+        if (!Schema::hasColumn('doctors', 'working_hours')) {
+            Schema::table('doctors', function (Blueprint $table) {
+                $table->json('working_hours')->nullable()->after('image');
+            });
+        }
     }
 
     /**
@@ -25,8 +27,10 @@ class AddWorkingHoursToDoctors extends Migration
      */
     public function down()
     {
-        Schema::table('doctors', function (Blueprint $table) {
-            $table->dropColumn('working_hours');
-        });
+        if (Schema::hasColumn('doctors', 'working_hours')) {
+            Schema::table('doctors', function (Blueprint $table) {
+                $table->dropColumn('working_hours');
+            });
+        }
     }
 }

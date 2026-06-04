@@ -9,6 +9,7 @@ use App\Models\Appointment;
 use App\Models\User;
 use Carbon\Carbon;
 use App\Models\DoctorSchedule;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -58,7 +59,8 @@ class AdminController extends Controller
         }
 
         // Thêm bác sĩ vào bảng doctors
-        $doctor = Doctor::create([
+        DB::transaction(function () use ($request, $filePath) {
+            Doctor::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -67,15 +69,16 @@ class AdminController extends Controller
             'bio' => $request->bio,
             'image' => $filePath,
             'working_hours' => $request->working_hours,
-        ]);
+            ]);
 
         // Thêm tài khoản vào bảng users
-        User::create([
+            User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'password' => Hash::make($request->password),
             'role' => 'admindoctor',
-        ]);
+            ]);
+        });
 
         return redirect()->route('admin.doctors.index')
             ->with('success', 'Bác sĩ đã được thêm thành công và có thể đăng nhập.');
@@ -88,6 +91,7 @@ class AdminController extends Controller
     {
         // Lấy thông tin bác sĩ cần sửa
         $doctor = Doctor::findOrFail($id);
+        $oldEmail = $doctor->email;
 
         // Validate dữ liệu từ form
         $request->validate([
@@ -132,11 +136,16 @@ class AdminController extends Controller
         $doctor->update($updateData);
 
         // Nếu có bảng `users` liên kết với bác sĩ, cập nhật cả tài khoản user
-        User::where('email', $doctor->email)->update([
+        $userUpdateData = [
             'name' => $request->name,
             'email' => $request->email,
-            'password' => $request->filled('password') ? Hash::make($request->password) : $doctor->password,
-        ]);
+        ];
+
+        if ($request->filled('password')) {
+            $userUpdateData['password'] = Hash::make($request->password);
+        }
+
+        User::where('email', $oldEmail)->update($userUpdateData);
 
         // Chuyển hướng về danh sách bác sĩ kèm thông báo
         return redirect()->route('admin.doctors.index')->with('success', 'Thông tin bác sĩ đã được cập nhật.');

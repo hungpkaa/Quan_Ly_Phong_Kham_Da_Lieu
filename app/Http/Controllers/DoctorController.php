@@ -2,34 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Doctor; // Import model Doctor
 use App\Models\Appointment;
+use App\Models\Doctor;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DoctorController extends Controller
 {
-    /**
-     * Hiển thị danh sách tất cả bác sĩ.
-     */
+    private function currentDoctor()
+    {
+        return Doctor::where('email', Auth::user()->email)->first();
+    }
+
     public function index()
     {
-        $doctors = Doctor::all(); // Lấy tất cả bác sĩ từ database
+        $doctors = Doctor::all();
         return view('doctors', compact('doctors'));
     }
 
-    /**
-     * Hiển thị danh sách bác sĩ cho admin.
-     */
     public function adminIndex()
     {
         $doctors = Doctor::all();
         return view('role.adminfixdoctors', compact('doctors'));
     }
 
-    /**
-     * Thêm một bác sĩ mới.
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -50,12 +46,9 @@ class DoctorController extends Controller
             'working_hours' => $request->working_hours,
         ]);
 
-        return redirect()->back()->with('success', 'Bác sĩ đã được thêm thành công!');
+        return redirect()->back()->with('success', 'Bac si da duoc them thanh cong!');
     }
 
-    /**
-     * Cập nhật thông tin bác sĩ.
-     */
     public function update(Request $request, $id)
     {
         $doctor = Doctor::findOrFail($id);
@@ -64,7 +57,7 @@ class DoctorController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:doctors,email,' . $id,
             'specialty' => 'required|string',
-            'working_hours' => 'nullable|array', // Cho phép lịch làm việc rỗng
+            'working_hours' => 'nullable|array',
             'working_hours.*.day' => 'required_with:working_hours|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'working_hours.*.shift' => 'required_with:working_hours|in:morning,afternoon',
         ]);
@@ -76,23 +69,16 @@ class DoctorController extends Controller
             'working_hours' => $request->has('working_hours') ? $request->working_hours : $doctor->working_hours,
         ]);
 
-        return redirect()->back()->with('success', 'Bác sĩ đã được cập nhật thành công!');
+        return redirect()->back()->with('success', 'Bac si da duoc cap nhat thanh cong!');
     }
 
-    /**
-     * Xóa bác sĩ.
-     */
     public function destroy($id)
     {
         $doctor = Doctor::findOrFail($id);
         $doctor->delete();
 
-        return redirect()->back()->with('success', 'Bác sĩ đã được xóa thành công!');
+        return redirect()->back()->with('success', 'Bac si da duoc xoa thanh cong!');
     }
-
-
-
-
 
     public function getDoctorsBySpecialty($specialty)
     {
@@ -102,34 +88,33 @@ class DoctorController extends Controller
 
     public function showDashboard()
     {
-        // Lấy thông tin bác sĩ từ bảng doctors (có thể dùng ID từ Auth hoặc bảng users)
-        $doctor = Doctor::where('email', Auth::user()->email)->first();
+        $doctor = $this->currentDoctor();
 
-        // Kiểm tra nếu bác sĩ không tồn tại
         if (!$doctor) {
-            return redirect()->route('home')->with('error', 'Không tìm thấy thông tin bác sĩ.');
+            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
         }
 
         return view('role.admindoctor', compact('doctor'));
     }
 
-
-    /**
-     * Hiển thị lịch trình khám của bác sĩ.
-     */
     public function showSchedule()
     {
-        // Kiểm tra nếu user có role 'admindoctor' thì vẫn lấy được lịch
-        if (Auth::user()->role === 'admindoctor') {
-            $appointments = Appointment::with(['patient', 'doctor'])
-                ->where('doctor_id', Auth::id()) // Lấy lịch khám theo ID của bác sĩ đăng nhập
-                ->orderBy('appointment_date', 'asc')
-                ->get();
-
-            return view('role.schedule', compact('appointments'));
-        } else {
-            return redirect()->route('home')->with('error', 'Bạn không có quyền truy cập trang này.');
+        if (Auth::user()->role !== 'admindoctor') {
+            return redirect()->route('home')->with('error', 'Ban khong co quyen truy cap trang nay.');
         }
+
+        $doctor = $this->currentDoctor();
+
+        if (!$doctor) {
+            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+        }
+
+        $appointments = Appointment::with(['patient', 'doctor'])
+            ->where('doctor_id', $doctor->id)
+            ->orderBy('appointment_date', 'asc')
+            ->get();
+
+        return view('role.schedule', compact('appointments'));
     }
 
     public function search_doctors_list(Request $request)
@@ -143,11 +128,16 @@ class DoctorController extends Controller
         return view('doctors', compact('doctors'));
     }
 
-
     public function showPatients()
     {
-        $patients = Appointment::where('doctor_id', Auth::id()) // Chỉ lấy bệnh nhân của doctor hiện tại
-            ->with('patient') // Load thông tin bệnh nhân
+        $doctor = $this->currentDoctor();
+
+        if (!$doctor) {
+            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+        }
+
+        $patients = Appointment::where('doctor_id', $doctor->id)
+            ->with('patient')
             ->get();
 
         return view('role.patients', compact('patients'));

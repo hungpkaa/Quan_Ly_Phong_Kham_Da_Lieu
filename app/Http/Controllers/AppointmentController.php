@@ -2,23 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Appointment;
-use App\Models\Doctor; // Thêm dòng này
+use App\Models\Doctor;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
-    // Hiển thị form đặt Lịch
     public function create()
     {
-        $doctors = Doctor::all(); // Lấy tất cả bác sĩ từ bảng `doctors`
+        $doctors = Doctor::all();
         $specialties = Doctor::distinct()->pluck('specialty');
         return view('appointmentcreate', compact('specialties', 'doctors'));
     }
 
-    // Xử lý Lưu Lịch hẹn
     public function store(Request $request)
     {
         $request->validate([
@@ -28,12 +25,13 @@ class AppointmentController extends Controller
             'phone' => 'required|string',
             'age' => 'required|integer|min:1',
             'cccd' => 'required|string|max:20',
-            'appointment_date' => 'required|date|after:today',
+            'appointment_date' => 'required|date|after_or_equal:today',
             'shift' => 'required|in:morning,afternoon',
             'description' => 'nullable|string|max:500',
         ]);
 
         Appointment::create([
+            'user_id' => Auth::check() && Auth::user()->role === 'patient' ? Auth::id() : null,
             'doctor_id' => $request->doctor_id,
             'name' => $request->name,
             'email' => $request->email,
@@ -43,20 +41,23 @@ class AppointmentController extends Controller
             'appointment_date' => $request->appointment_date,
             'shift' => $request->shift,
             'description' => $request->description,
-            'status' => 'approved',
+            'status' => 'pending',
         ]);
 
-        return redirect()->route('appointments.create')->with('success', 'Đặt lịch thành công. Chờ duyệt!');
+        return redirect()->route('appointments.create')->with('success', 'Dat lich thanh cong. Cho duyet!');
     }
-
 
     public function searchAppointments(Request $request)
     {
-        $doctorId = auth()->user()->id; // Lấy ID của bác sĩ đăng nhậpppppp
+        $doctor = Doctor::where('email', Auth::user()->email)->first();
+
+        if (!$doctor) {
+            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+        }
+
         $query = $request->input('query');
 
-        // Tìm kiếm lịch hẹn của bác sĩ hiện tại theo tên bệnh nhân, ngày khám hoặc trạng thái
-        $appointments = Appointment::where('doctor_id', $doctorId)
+        $appointments = Appointment::where('doctor_id', $doctor->id)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%$query%")
                     ->orWhere('appointment_date', 'LIKE', "%$query%")
@@ -66,17 +67,12 @@ class AppointmentController extends Controller
             ->get();
 
         return view('role.schedule', compact('appointments'));
-
     }
 
-
-
-    // Hiển thị danh sách lịch hẹn của bệnh nhân
     public function index()
     {
         $appointments = Appointment::orderBy('appointment_date', 'asc')->get();
 
         return view('role.schedule', compact('appointments'));
     }
-
 }
