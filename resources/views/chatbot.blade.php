@@ -10,7 +10,7 @@
             <div id="chat-box" class="border p-3 rounded"
                 style="height: 400px; overflow-y: auto; background-color: #f8f9fa; display: flex; flex-direction: column;">
                 <div class="bot-message">
-                    <p class="chat-bubble bot">Xin chào! Tôi có thể giúp gì cho bạn? 😊</p>
+                    <div class="chat-bubble bot">Xin chào! Tôi có thể giúp gì cho bạn? 😊</div>
                 </div>
             </div>
             <div class="mt-3 d-flex">
@@ -67,6 +67,33 @@
 </style>
 
 <script>
+const chatHistory = @json($chatHistory ?? []);
+
+document.addEventListener("DOMContentLoaded", function() {
+    let chatBox = document.getElementById("chat-box");
+    if (chatHistory.length > 0) {
+        // Xóa tin nhắn chào mừng mặc định nếu có lịch sử cũ
+        chatBox.innerHTML = '';
+        chatHistory.forEach(msg => {
+            if (msg.role === 'user') {
+                chatBox.innerHTML += `<div class="user-message"><div class="chat-bubble user">${msg.content}</div></div>`;
+            } else if (msg.role === 'assistant') {
+                let formatted = formatMessage(msg.content);
+                chatBox.innerHTML += `<div class="bot-message"><div class="chat-bubble bot">${formatted}</div></div>`;
+            }
+        });
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+});
+
+function formatMessage(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // In đậm
+        .replace(/\*(.*?)\*/g, '<em>$1</em>') // In nghiêng
+        .replace(/\n/g, '<br>') // Xuống dòng
+        .replace(/- /g, '• '); // Dấu chấm tròn cho danh sách
+}
+
 function handleKeyPress(event) {
     if (event.key === "Enter") {
         sendMessage();
@@ -80,12 +107,12 @@ function sendMessage() {
     if (message.trim() === "") return;
 
     // Hiển thị tin nhắn người dùng
-    chatBox.innerHTML += `<div class="user-message"><p class="chat-bubble user">${message}</p></div>`;
+    chatBox.innerHTML += `<div class="user-message"><div class="chat-bubble user">${message}</div></div>`;
 
     // Hiệu ứng "Chatbot đang gõ..."
     let typingIndicator = document.createElement("div");
     typingIndicator.classList.add("bot-message");
-    typingIndicator.innerHTML = `<p class="chat-bubble bot typing">Chatbot đang trả lời...</p>`;
+    typingIndicator.innerHTML = `<div class="chat-bubble bot typing">Chatbot đang trả lời...</div>`;
     chatBox.appendChild(typingIndicator);
     chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -105,12 +132,15 @@ function sendMessage() {
             console.log("API Response:", data);
 
             let botResponse = data.message || "Lỗi phản hồi từ chatbot.";
+            
+            // Format Markdown cơ bản (Bold, Newline, List)
+            let formattedResponse = formatMessage(botResponse);
 
             // Xóa hiệu ứng "đang gõ..."
             chatBox.removeChild(typingIndicator);
 
             // Hiển thị tin nhắn chatbot
-            chatBox.innerHTML += `<div class="bot-message"><p class="chat-bubble bot">${botResponse}</p></div>`;
+            chatBox.innerHTML += `<div class="bot-message"><div class="chat-bubble bot">${formattedResponse}</div></div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         })
         .catch(error => {

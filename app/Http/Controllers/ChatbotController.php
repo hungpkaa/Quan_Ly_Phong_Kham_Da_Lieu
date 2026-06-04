@@ -12,12 +12,13 @@ class ChatbotController extends Controller
 
     public function __construct()
     {
-        $this->apiKey = env('GEMINI_API_KEY');
+        $this->apiKey = env('OPENROUTER_API_KEY');
     }
 
     public function index()
     {
-        return view('chatbot');
+        $chatHistory = session('chatbot_history', []);
+        return view('chatbot', compact('chatHistory'));
     }
 
     public function sendMessage(Request $request)
@@ -27,10 +28,16 @@ class ChatbotController extends Controller
         $context = "Bạn là PhenikaaMec AI, một trợ lý y tế chuyên nghiệp của hệ thống PhenikaaMec, chuyên về lĩnh vực Da liễu.
 Mục tiêu của bạn là tư vấn bệnh nhân, hỗ trợ bác sĩ, và cung cấp thông tin chính xác về các triệu chứng da liễu, thuốc điều trị, cách chữa tại nhà và bác sĩ phù hợp.
 
+YÊU CẦU QUAN TRỌNG VỀ ĐỊNH DẠNG:
+- Trả lời thật RÕ RÀNG, GỌN GÀNG và RẤT NGẮN GỌN SÚC TÍCH.
+- Tuyệt đối không viết thành đoạn văn dài dòng.
+- Luôn sử dụng danh sách gạch đầu dòng (-) để chia ý rõ ràng.
+- Sử dụng in đậm (**) cho các từ khóa quan trọng.
+
 Cách bạn phản hồi bệnh nhân:
 1. Khi bệnh nhân lần đầu trò chuyện, hãy giới thiệu bản thân ngắn gọn: 
-   'Chào bạn, tôi là PhenikaaMec AI - trợ lý y tế chuyên về Da liễu. Tôi có thể giúp bạn tư vấn về các triệu chứng da liễu, thuốc điều trị, cách chữa tại nhà và bác sĩ phù hợp.' Nhưng giới thiệu 1 lần thôi, không cần giới thiệu lần 2!
-2. Nếu bệnh nhân chưa cung cấp thông tin quan trọng (tuổi, giới tính, triệu chứng cụ thể), hãy hỏi một lần.
+   'Chào bạn, tôi là PhenikaaMec AI - trợ lý y tế chuyên về Da liễu.' Nhưng giới thiệu 1 lần thôi, không cần giới thiệu lần 2!
+2. Nếu bệnh nhân chưa cung cấp thông tin quan trọng (tuổi, giới tính, triệu chứng cụ thể), hãy hỏi một lần ngắn gọn.
 3. Nếu bệnh nhân đã cung cấp thông tin, không hỏi lại mà tiếp tục hội thoại tự nhiên.
 
 Triệu chứng & Hướng dẫn Chữa trị:
@@ -108,53 +115,72 @@ Hãy tư vấn họ đặt lịch khám với:
 
 
 
-        $primaryModel = env('GEMINI_MODEL', 'gemini-1.5-flash');
+        $primaryModel = env('AI_MODEL', 'openai/gpt-4o-mini'); // Sử dụng model hoạt động nhanh nhất trên OpenRouter
         $fallbackModels = [
             $primaryModel,
-            'gemini-1.5-flash-002',
-            'gemini-1.5-flash-001',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro-002',
-            'gemini-1.5-pro-001',
-            'gemini-1.5-pro',
-            'gemini-1.0-pro',
-            'gemini-pro',
+            'openai/gpt-3.5-turbo',
+            'google/gemini-1.5-pro',
         ];
         $modelList = array_values(array_unique(array_filter($fallbackModels)));
+
+        // --- Bắt đầu: Lấy lịch sử chat từ Session ---
+        $chatHistory = session('chatbot_history', []);
+        
+        // Thêm tin nhắn mới của người dùng vào lịch sử
+        $chatHistory[] = ["role" => "user", "content" => $userMessage];
+        
+        $messages = [
+            ["role" => "system", "content" => $context]
+        ];
+        // Chỉ lấy 10 tin nhắn gần nhất để tránh quá tải dung lượng (token)
+        $messages = array_merge($messages, array_slice($chatHistory, -10));
+        // --- Kết thúc ---
 
         $responseData = null;
 
         foreach ($modelList as $model) {
-            // **Gửi request đến API Gemini**
-            $response = Http::post("https://generativelanguage.googleapis.com/v1/models/{$model}:generateContent?key=" . $this->apiKey, [
-                "contents" => [
-                    ["role" => "user", "parts" => [["text" => $context]]],
-                    ["role" => "user", "parts" => [["text" => $userMessage]]]
-                ]
+            // **Gửi request đến API OpenRouter**
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'HTTP-Referer' => env('APP_URL', 'http://localhost'),
+                'X-Title' => 'PhenikaaMec'
+            ])->post("https://openrouter.ai/api/v1/chat/completions", [
+                "model" => $model,
+                "messages" => $messages // Gửi toàn bộ lịch sử thay vì chỉ 1 câu hỏi
             ]);
 
             $responseData = $response->json();
-            Log::info(json_encode($responseData)); // Ghi log phản hồi API để debug
+            Log::info("Model: $model - Response: " . json_encode($responseData)); // Ghi log phản hồi API để debug
 
-            if (isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+            if (isset($responseData['choices'][0]['message']['content'])) {
                 break;
             }
 
-            if (!isset($responseData['error']['code']) || $responseData['error']['code'] !== 404) {
-                break;
+            if (isset($responseData['error'])) {
+                $errCode = $responseData['error']['code'] ?? 0;
+                // Sai API Key (401) hoặc hết tiền (402) thì dừng luôn vì có đổi model cũng vậy
+                if ($errCode === 401 || $errCode === 403 || $errCode === 402) {
+                    break;
+                }
+                // Nếu model không hợp lệ (400) hoặc lỗi khác, tiếp tục thử model khác
+                continue;
             }
         }
 
         // **Kiểm tra nếu API phản hồi lỗi hoặc không có nội dung**
-        if (!isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
+        if (!isset($responseData['choices'][0]['message']['content'])) {
             return response()->json([
-                'message' => 'Lỗi phản hồi từ chatbot.',
+                'message' => 'Lỗi phản hồi từ chatbot. Vui lòng kiểm tra lại cấu hình API Key.',
                 'error' => $responseData
             ]);
         }
 
         // **Lấy nội dung chatbot trả lời**
-        $botResponse = $responseData['candidates'][0]['content']['parts'][0]['text'];
+        $botResponse = $responseData['choices'][0]['message']['content'];
+
+        // Lưu câu trả lời của bot vào lịch sử session
+        $chatHistory[] = ["role" => "assistant", "content" => $botResponse];
+        session(['chatbot_history' => $chatHistory]);
 
         return response()->json([
             'message' => $botResponse

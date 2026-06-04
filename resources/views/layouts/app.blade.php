@@ -11,103 +11,117 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
   <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 </head>
 
 <body>
   <header>
-    <div class="py-3" style="background-color: #e0f7fa; border-bottom: 1px solid #ccc;">
-      <div class="container d-flex justify-content-center align-items-center flex-wrap gap-3">
-        <!-- Logo -->
-        <a href="{{ url('/') }}" class="d-flex align-items-center">
-          <img src="/img/logo.webp" alt="Logo" style="height: 50px;">
+    <!-- ========== DÒNG 1: SLOGAN BAR ========== -->
+    <div class="pmec-slogan-bar">
+      <div class="pmec-slogan-inner">
+        <div class="pmec-slogan-layer pmec-slogan-orange"></div>
+        <div class="pmec-slogan-layer pmec-slogan-lightblue"></div>
+        <div class="pmec-slogan-layer pmec-slogan-darkblue">
+          <p>Tận tâm - Sáng tạo - Nâng tầm tri thức</p>
+        </div>
+      </div>
+    </div>
 
+    <!-- ========== DÒNG 2: MAIN HEADER ========== -->
+    <div class="pmec-main-header">
+      <div class="container d-flex align-items-center justify-content-between flex-wrap gap-2 py-3">
+        <!-- Logo -->
+        <a href="{{ url('/') }}" class="pmec-logo">
+          <img src="/img/logo.webp" alt="PHENIKAAMEC Logo" style="height: 48px;">
         </a>
 
         <!-- Ô tìm kiếm -->
-        <div class="position-relative" style="max-width: 400px; width: 100%;">
-          <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm..."
-            style="border-radius: 25px;">
-          <button class="btn btn-primary position-absolute top-0 end-0 m-1" style="border-radius: 25px;">
+        <div class="pmec-search-wrapper position-relative">
+          <input type="text" id="searchInput" class="form-control pmec-search-input" placeholder="Tìm kiếm...">
+          <a href="#" class="pmec-search-btn" onclick="return false;">
             <i class="bi bi-search"></i>
-          </button>
-          <!-- Kết quả tìm kiếm -->
+          </a>
           <div id="searchResults" class="position-absolute w-100 bg-white shadow rounded mt-2 d-none"
             style="max-height: 300px; overflow-y: auto; z-index: 1000;">
           </div>
         </div>
 
-
-        <!-- Actions -->
-        <a href="/appointments/create" class="btn btn-primary btn-sm rounded-pill px-3"
-          style="background-color: #007bff; border-color: #007bff;">Đặt lịch khám</a>
-        @auth
-          @if(Auth::user()->phone)
-          <span class="btn btn-info btn-sm rounded-pill px-3" style="color: white;">{{ Auth::user()->phone }}</span>
+        <!-- Cụm nút chức năng -->
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <a href="/appointments/create" class="pmec-btn pmec-btn-orange">
+            <i class="bi bi-calendar-check me-1"></i> Đặt lịch khám
+          </a>
+          @auth
+            @if(Auth::user()->phone)
+            <a href="tel:{{ Auth::user()->phone }}" class="pmec-btn pmec-btn-darkblue">
+              <i class="bi bi-telephone-fill me-1"></i> {{ Auth::user()->phone }}
+            </a>
+            @else
+            <a href="tel:0886314896" class="pmec-btn pmec-btn-darkblue">
+              <i class="bi bi-telephone-fill me-1"></i> 0886314896
+            </a>
+            @endif
           @else
-          <a href="https://zalo.me/0886314896" class="btn btn-info btn-sm rounded-pill px-3"
-            style="color: white;">0886314896</a>
+          <a href="tel:0886314896" class="pmec-btn pmec-btn-darkblue">
+            <i class="bi bi-telephone-fill me-1"></i> 0886314896
+          </a>
+          @endauth
+          <a href="/support" class="pmec-btn pmec-btn-lightblue">
+            <i class="bi bi-info-circle me-1"></i> Hướng dẫn khách hàng
+          </a>
+
+          @guest
+          <a href="{{ route('login') }}" class="pmec-btn pmec-btn-outline">Đăng nhập</a>
+          <a href="{{ route('register') }}" class="pmec-btn pmec-btn-green">Đăng ký</a>
+          @else
+          @if(Auth::user()->role === 'patient')
+          <a href="{{ route('patient.account') }}" class="pmec-btn pmec-btn-outline">
+            <i class="bi bi-person-circle me-1"></i> Tài khoản
+          </a>
           @endif
-        @else
-        <a href="https://zalo.me/0886314896" class="btn btn-info btn-sm rounded-pill px-3"
-          style="color: white;">0886314896</a>
-        @endauth
-        <a href="/support" class="btn btn-warning btn-sm rounded-pill px-3" style="color: white;">Hướng dẫn
-          khách
-          hàng</a>
-        @guest
-        <a href="{{ route('login') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">&#272;&#259;ng
-          nh&#7853;p</a>
-        <a href="{{ route('register') }}" class="btn btn-success btn-sm rounded-pill px-3">&#272;&#259;ng k&#253;</a>
-        @else
-        @if(Auth::user()->role === 'patient')
-        <a href="{{ route('patient.account') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">T&#224;i kho&#7843;n c&#7911;a t&#244;i</a>
-        @endif
-        <form method="POST" action="{{ route('logout') }}" class="d-inline-block m-0">
-          @csrf
-          <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">&#272;&#259;ng xu&#7845;t</button>
-        </form>
-        @endguest
-        <div class="dropdown">
-          <button class="btn btn-light btn-sm rounded-circle dropdown-toggle" id="languageDropdown"
-            data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="/img/vietnam.png" alt="VN" style="height: 20px;"> <!-- Icon cờ -->
-          </button>
-          <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-            <li><a class="dropdown-item" href="#">Vietnamese</a></li>
-            <li><a class="dropdown-item" href="#">English</a></li>
-          </ul>
+          <form method="POST" action="{{ route('logout') }}" class="d-inline-block m-0">
+            @csrf
+            <button type="submit" class="pmec-btn pmec-btn-danger">
+              <i class="bi bi-box-arrow-right me-1"></i> Đăng xuất
+            </button>
+          </form>
+          @endguest
+
+          <!-- Ngôn ngữ -->
+          <div class="dropdown">
+            <button class="pmec-lang-btn dropdown-toggle" id="languageDropdown"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              <img src="/img/vietnam.png" alt="VN" style="height: 20px;">
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+              <li><a class="dropdown-item" href="#">Vietnamese</a></li>
+              <li><a class="dropdown-item" href="#">English</a></li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
-  </header>
 
-
-  <nav class="navbar navbar-expand-lg" style="background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-    <div class="container">
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
-        <ul class="navbar-nav">
-          <li class="nav-item"><a class="nav-link" href="{{ url('/') }}" style="color: #0056b3; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 500; 
-                            margin: 0 10px;">Trang Chủ</a>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="{{ url('/about') }}" style="color: #0056b3; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 500;
-                             margin: 0 10px;">Thông Tin</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url('/services') }}" style="color: #0056b3; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 500; 
-                            margin: 0 10px;">Dịch Vụ</a>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="{{ url('/contact') }}" style="color: #0056b3; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 500;
-                            margin: 0 10px;">Liên Lạc</a>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="{{ url('/doctors') }}" style="color: #0056b3; font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 500;
-                             margin: 0 10px;">Bác Sĩ</a>
-          </li>
-        </ul>
+    <!-- ========== DÒNG 3: NAVIGATION BAR ========== -->
+    <nav class="pmec-navbar">
+      <div class="container">
+        <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+          aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"
+          style="border: none; background: none; padding: 8px;">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+          <ul class="navbar-nav pmec-nav-list">
+            <li class="nav-item"><a class="nav-link pmec-nav-link" href="{{ url('/') }}">Trang Chủ</a></li>
+            <li class="nav-item"><a class="nav-link pmec-nav-link" href="{{ url('/about') }}">Thông Tin</a></li>
+            <li class="nav-item"><a class="nav-link pmec-nav-link" href="{{ url('/services') }}">Dịch Vụ</a></li>
+            <li class="nav-item"><a class="nav-link pmec-nav-link" href="{{ url('/contact') }}">Liên Lạc</a></li>
+            <li class="nav-item"><a class="nav-link pmec-nav-link" href="{{ url('/doctors') }}">Bác Sĩ</a></li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+  </header>
 
 
   <style>
@@ -176,9 +190,9 @@
           </div>
 
           <div class="social-icons">
-            <a href="#"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
-            <a href="#"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
-            <a href="#"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
+            <a href="https://www.facebook.com/phenikaamec.vn" target="_blank"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
+            <a href="https://www.youtube.com/@phenikaamec" target="_blank"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
+            <a href="https://www.tiktok.com/@phenikaamec" target="_blank"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
           </div>
         </div>
       </div>
@@ -272,27 +286,263 @@
 
   <style>
   /* Font chữ từ Google Fonts */
-  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-
-  .nav-link {
-    font-family: Arial, sans-serif !important;
+  /* ========== SLOGAN BAR ========== */
+  .pmec-slogan-bar {
+    display: flex;
+    justify-content: center;
+    padding-top: 0;
+    background-color: #C2EFFF;
+  }
+  .pmec-slogan-inner {
+    position: relative;
+    width: 840px;
+    height: 32px;
+  }
+  .pmec-slogan-layer {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 32px;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
+  }
+  .pmec-slogan-orange {
+    width: 840px;
+    background-color: #F26522;
+  }
+  .pmec-slogan-lightblue {
+    width: 818px;
+    background-color: #00AEEF;
+  }
+  .pmec-slogan-darkblue {
+    width: 792px;
+    background-color: #03428E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pmec-slogan-darkblue p {
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
     font-size: 14px;
-    font-weight: 500;
-    color: #0056b3;
-    margin: 0 10px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
+  /* ========== MAIN HEADER ========== */
+  .pmec-main-header {
+    background-color: #C2EFFF;
+  }
+  .pmec-logo {
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+  .pmec-logo img {
+    transition: transform 0.2s ease;
+  }
+  .pmec-logo:hover img {
+    transform: scale(1.03);
+  }
 
+  /* Search */
+  .pmec-search-wrapper {
+    flex: 1;
+    max-width: 400px;
+    min-width: 180px;
+  }
+  .pmec-search-input {
+    height: 42px;
+    border-radius: 40px !important;
+    border: none !important;
+    background-color: rgba(255,255,255,0.8) !important;
+    padding: 0 50px 0 20px;
+    font-size: 13px;
+    transition: background-color 0.2s ease;
+  }
+  .pmec-search-input:hover,
+  .pmec-search-input:focus {
+    background-color: #fff !important;
+    box-shadow: 0 0 0 2px rgba(0,174,239,0.3) !important;
+  }
+  .pmec-search-btn {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #4BADE9;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+  }
+  .pmec-search-btn:hover {
+    background-color: #03428E;
+    color: #fff;
+  }
 
-  /* Hiệu ứng hover: sáng lên */
-  nav a:hover {
-    background-color: rgba(0, 115, 230, 0.1);
-    /* Nền sáng nhẹ */
-    color: #0073e6;
-    /* Đổi màu chữ */
-    transform: scale(1.05);
-    /* Phóng to nhẹ */
+  /* Buttons */
+  .pmec-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    border-radius: 32px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s ease;
+    line-height: 1.4;
+  }
+  .pmec-btn-orange {
+    background-color: #F26522;
+    color: #fff;
+  }
+  .pmec-btn-orange:hover {
+    background-color: #d3571c;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(242,101,34,0.35);
+  }
+  .pmec-btn-darkblue {
+    background-color: #03428E;
+    color: #fff;
+  }
+  .pmec-btn-darkblue:hover {
+    background-color: #013779;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(3,66,142,0.35);
+  }
+  .pmec-btn-lightblue {
+    background-color: #00AEEF;
+    color: #fff;
+  }
+  .pmec-btn-lightblue:hover {
+    background-color: #03a5e2;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,174,239,0.35);
+  }
+  .pmec-btn-outline {
+    background-color: transparent;
+    color: #03428E;
+    border: 2px solid #03428E;
+  }
+  .pmec-btn-outline:hover {
+    background-color: #03428E;
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .pmec-btn-green {
+    background-color: #28a745;
+    color: #fff;
+  }
+  .pmec-btn-green:hover {
+    background-color: #218838;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40,167,69,0.35);
+  }
+  .pmec-btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+  }
+  .pmec-btn-danger:hover {
+    background-color: #c82333;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220,53,69,0.35);
+  }
+
+  /* Language button */
+  .pmec-lang-btn {
+    background: rgba(255,255,255,0.6);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    padding: 0;
+  }
+  .pmec-lang-btn::after {
+    display: none; /* Hide default dropdown caret */
+  }
+  .pmec-lang-btn:hover {
+    background: rgba(255,255,255,1);
+  }
+
+  /* ========== NAVIGATION BAR ========== */
+  .pmec-navbar {
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 0;
+  }
+  .pmec-nav-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .pmec-nav-link {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #03428E !important;
+    padding: 12px 16px !important;
+    border-radius: 32px;
+    transition: all 0.2s ease;
+    margin: 0 !important;
+  }
+  .pmec-nav-link:hover {
+    background-color: #C2EFFF !important;
+    color: #03428E !important;
+    transform: none;
+  }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 991px) {
+    .pmec-slogan-bar {
+      display: none;
+    }
+    .pmec-search-wrapper {
+      max-width: 100%;
+      order: 10;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .pmec-nav-list {
+      flex-direction: column;
+      gap: 0;
+      padding: 8px 0;
+    }
+    .pmec-nav-link {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .pmec-btn {
+      font-size: 11px;
+      padding: 5px 10px;
+    }
   }
 
 
@@ -426,6 +676,8 @@
 
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script>AOS.init({ duration: 800, once: true, offset: 100 });</script>
 </body>
 
 </html>
