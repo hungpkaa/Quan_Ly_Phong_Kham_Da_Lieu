@@ -72,7 +72,6 @@
 
           @guest
           <a href="{{ route('login') }}" class="pmec-btn pmec-btn-outline">Đăng nhập</a>
-          <a href="{{ route('register') }}" class="pmec-btn pmec-btn-green">Đăng ký</a>
           @else
           @if(Auth::user()->role === 'patient')
           <a href="{{ route('patient.account') }}" class="pmec-btn pmec-btn-outline">
