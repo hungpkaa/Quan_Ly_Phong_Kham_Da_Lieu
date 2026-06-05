@@ -26,7 +26,7 @@ class SupportController extends Controller
 
         Support::create($request->all());
 
-        return redirect()->route('support.create')->with('success', 'Yêu cầu hỗ trợ của bạn đã được gửi!');
+        return back()->with('success', 'Yêu cầu hỗ trợ của bạn đã được gửi!');
     }
 
     // Admin xem danh sách hỗ trợ

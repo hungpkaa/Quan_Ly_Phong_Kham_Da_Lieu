@@ -141,8 +141,8 @@ a { text-decoration: none !important; }
 .vision-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    max-width: 900px;
+    gap: 30px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 .vision-card {
@@ -159,7 +159,7 @@ a { text-decoration: none !important; }
 }
 .vision-card img {
     width: 100%;
-    height: 170px;
+    height: 240px;
     object-fit: cover;
 }
 .vision-card h3 {
@@ -182,8 +182,8 @@ a { text-decoration: none !important; }
 .facility-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    max-width: 900px;
+    gap: 30px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 .facility-card {
@@ -199,7 +199,7 @@ a { text-decoration: none !important; }
 }
 .facility-card img {
     width: 100%;
-    height: 180px;
+    height: 250px;
     object-fit: cover;
 }
 .facility-card-body {
@@ -221,9 +221,9 @@ a { text-decoration: none !important; }
 /* ========== SERVICES GRID ========== */
 .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 24px;
-    max-width: 900px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 .service-card {
@@ -240,7 +240,7 @@ a { text-decoration: none !important; }
 }
 .service-card img {
     width: 100%;
-    height: 180px;
+    height: 220px;
     object-fit: cover;
 }
 .service-card h3 {
@@ -256,8 +256,8 @@ a { text-decoration: none !important; }
 .achievement-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    max-width: 900px;
+    gap: 30px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 .achievement-card {
@@ -610,7 +610,7 @@ a { text-decoration: none !important; }
 
 <!-- ========== MAIN CONTENT ========== -->
 <div class="bg-light-white-blue">
-    <div class="container" style="max-width: 1000px; padding: 40px 16px;">
+    <div class="container" style="max-width: 1200px; padding: 40px 16px;">
 
         <!-- Tiêu đề chính -->
         <div data-aos="fade-up">
@@ -713,7 +713,7 @@ a { text-decoration: none !important; }
         <div style="margin-top: 56px;">
             <h2 class="section-title" data-aos="fade-up">Trang thiết bị tân tiến</h2>
             <span class="section-underline" data-aos="fade-up" data-aos-delay="100"></span>
-            <div class="vision-grid" style="max-width: 900px;">
+            <div class="vision-grid" style="max-width: 1200px;">
                 <div class="vision-card" data-aos="fade-up" data-aos-delay="100">
                     <img src="/img/img5.webp" alt="Y học hạt nhân">
                     <h3>Y học hạt nhân</h3>
@@ -789,7 +789,7 @@ a { text-decoration: none !important; }
         <div style="margin-top: 56px;">
             <h2 class="section-title" data-aos="fade-up">Về hoạt động của PhenikaaMec</h2>
             <span class="section-underline" data-aos="fade-up" data-aos-delay="100"></span>
-            <div class="vision-grid" style="max-width: 900px;">
+            <div class="vision-grid" style="max-width: 1200px;">
                 <div class="vision-card" data-aos="fade-up" data-aos-delay="100">
                     <img src="/img/img32.webp" alt="Nghiên cứu khoa học">
                     <h3>Nghiên cứu khoa học</h3>
@@ -810,7 +810,7 @@ a { text-decoration: none !important; }
 
 <!-- ===== HỢP TÁC BÁC SĨ ===== -->
 <div class="cooperation-section">
-    <div class="container" style="max-width: 1000px;">
+    <div class="container" style="max-width: 1200px;">
         <h2 class="section-title" data-aos="fade-up">Hợp tác Bác sĩ</h2>
         <span class="section-underline" data-aos="fade-up" data-aos-delay="100"></span>
         <p class="section-subtitle" data-aos="fade-up" data-aos-delay="150">
@@ -824,7 +824,7 @@ a { text-decoration: none !important; }
 
 <!-- ===== LIÊN HỆ & HỖ TRỢ (GLASSMORPHISM) ===== -->
 <div class="contact-section">
-    <div class="container" style="max-width: 1000px;">
+    <div class="container" style="max-width: 1200px;">
         <div class="row align-items-center">
             <div class="col-lg-5 contact-info-col" data-aos="fade-right">
                 <h2>Liên hệ với chúng tôi</h2>

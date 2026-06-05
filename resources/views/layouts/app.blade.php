@@ -141,70 +141,9 @@
     @yield('content')
   </div>
 
-  <footer class="footer">
-    <div class="container">
-      <div class="row">
-        <!-- Cột 1: Thông tin bệnh viện -->
-        <div class="col-md-3 footer-col">
-          <a href="#" class="footer-logo">
-            <img src="{{ asset('img/phenikaamec.webp') }}" alt="PHENIKAA MEC">
-          </a>
+  @include('partials.footer')
 
-          <p><strong>Bệnh viện Đại Học Phenikaa</strong></p>
-          <p>📍 Đường Kiều Mai, P. Phương Canh, Nam Từ Liêm, Hà Nội</p>
-          <p>📜 Giấy phép hoạt động số 386/BYT</p>
-          <p>📞 Hotline: <a href="tel:1900886648">1900.88.66.48</a> - <a href="tel:02422226688">02422226688</a></p>
-          <p>📧 Email: <a href="mailto:support@phenikaamec.com">support@phenikaamec.com</a></p>
-        </div>
 
-        <!-- Cột 2: Hệ thống phòng khám -->
-        <div class="col-md-3 footer-col">
-          <h5 class="footer-title">HỆ THỐNG PHÒNG KHÁM</h5>
-          <p><strong>Phòng Khám Đa Khoa - Hoàng Ngân</strong></p>
-          <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-          <p>📞 <a href="tel:02422226699">02422226699</a></p>
-          <p>⏰ Giờ làm việc: 7h30 - 17h00</p>
-
-          <p><strong>Phòng Khám Răng Hàm Mặt</strong></p>
-          <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-          <p>📞 <a href="tel:0978625499">0978625499</a></p>
-          <p>⏰ Giờ làm việc: 8h00 - 18h00</p>
-        </div>
-
-        <!-- Cột 3: Liên kết nhanh -->
-        <div class="col-md-3 footer-col">
-          <h5 class="footer-title">LIÊN KẾT NHANH</h5>
-          <ul class="list-unstyled">
-            <li><a href="#">Chương trình Bác sĩ hợp tác</a></li>
-            <li><a href="#">Chuyên khoa</a></li>
-            <li><a href="#">Dịch vụ</a></li>
-            <li><a href="#">Bệnh học</a></li>
-          </ul>
-        </div>
-
-        <!-- Cột 4: Ứng dụng & Mạng xã hội -->
-        <div class="col-md-3 footer-col">
-          <h5 class="footer-title">TẢI APP PHENIKAA MEC</h5>
-          <div class="qr-box">
-            <a href="#"><img src="{{ asset('img/qr.png') }}" alt="Facebook"></a>
-          </div>
-
-          <div class="social-icons">
-            <a href="https://www.facebook.com/phenikaamec.vn" target="_blank"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
-            <a href="https://www.youtube.com/@phenikaamec" target="_blank"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
-            <a href="https://www.tiktok.com/@phenikaamec" target="_blank"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
-          </div>
-        </div>
-      </div>
-
-      <hr class="footer-divider">
-
-      <div class="text-center">
-        <p>&copy; {{ date('Y') }} thuộc về Bệnh viện Đại học Phenikaa</p>
-        <p><a href="#">Điều khoản sử dụng</a> | <a href="#">Chính sách bảo mật</a></p>
-      </div>
-    </div>
-  </footer>
 
 
   <script>
@@ -547,98 +486,219 @@
 
 
 
-  /* Footer Styles */
-  .footer {
-    background-color: #b3e5fc;
-    color: #003366;
-    font-family: 'Poppins', sans-serif;
-    padding: 40px 10%;
+  /* ========== NEW FOOTER STYLES ========== */
+  .footer-custom {
+      background-color: #C2EFFF;
+      font-family: 'Poppins', sans-serif;
   }
-
-  .footer-col {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+  .footer-custom .footer-top {
+      padding: 40px 0 20px 0;
   }
-
   .footer-logo img {
-    max-width: 180px;
-    /* Giới hạn kích thước logo */
-    display: block;
-    margin-bottom: 10px;
-    /* Tạo khoảng cách với nội dung */
+      transition: transform 0.2s ease;
+  }
+  .footer-logo:hover img {
+      transform: scale(1.05);
+  }
+  .footer-info-list li {
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+  }
+  .footer-info-list i {
+      margin-top: 3px;
+  }
+  .footer-heading {
+      font-size: 14px;
+      font-weight: 700;
+      color: #03428E;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+  }
+  .clinic-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #03428E;
+      margin-bottom: 6px;
+  }
+  .clinic-info li {
+      font-size: 12px;
+      color: #333;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+  }
+  .clinic-info i {
+      color: #F26522; /* Orange icons */
+      margin-top: 2px;
+  }
+  .footer-links li {
+      margin-bottom: 10px;
+  }
+  .footer-links a {
+      color: #333;
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.2s;
+  }
+  .footer-links a:hover {
+      color: #03428E;
+      text-decoration: underline;
+  }
+  .footer-social {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+  }
+  .footer-social .social-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      text-decoration: none;
+      font-size: 18px;
+      transition: transform 0.2s;
+  }
+  .footer-social .social-icon.fb { background-color: #1877F2; }
+  .footer-social .social-icon.yt { background-color: #FF0000; }
+  .footer-social .social-icon.tt { background-color: #000000; }
+  .footer-social .social-icon:hover {
+      transform: scale(1.1);
   }
 
-  .footer-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #0056b3;
-    margin-bottom: 12px;
+  /* ========== FLOATING CONTACT MENU ========== */
+  .floating-contact {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+  }
+  .contact-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+  }
+  .contact-menu.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+  }
+  .contact-item {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      text-decoration: none;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease;
+  }
+  .contact-item:hover {
+      transform: scale(1.1);
+      color: white;
+  }
+  .contact-item.zalo { background-color: #fff; border: 1px solid #0068FF; color: #0068FF; font-weight: bold; font-size: 14px;}
+  .contact-item.zalo:hover { background-color: #0068FF; color: #fff;}
+  .contact-item.phone { background-color: #28a745; }
+  .contact-item.messenger { background-color: #0084FF; }
+  
+  .contact-toggle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: #fff;
+      color: #F26522;
+      border: 1px solid rgba(242,101,34,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+  }
+  .contact-toggle::after {
+      content: '';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 10px;
+      height: 10px;
+      background-color: #ff3b30;
+      border-radius: 50%;
+      border: 2px solid #fff;
+  }
+  .contact-toggle:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  .contact-toggle.active {
+      background-color: #F26522;
+      color: #fff;
+  }
+  .contact-toggle.active i::before {
+      content: "\f00d"; /* fa-times */
+  }
+  .contact-toggle.active::after {
+      display: none;
   }
 
-  .footer a {
-    color: #003366;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 400;
+  .btn-360 {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: #fff;
+      color: #F26522;
+      border: 1px solid rgba(242,101,34,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 12px;
+      text-decoration: none;
   }
-
-  .footer a:hover {
-    color: #0056b3;
-    text-decoration: underline;
+  .btn-360 span {
+      font-size: 11px;
+      font-weight: bold;
+      line-height: 1;
+      margin-top: 2px;
   }
-
-  .footer p {
-    font-size: 14px;
-    font-weight: 400;
-  }
-
-  .footer .list-unstyled li {
-    margin-bottom: 6px;
-  }
-
-  .qr-box {
-    background: white;
-    padding: 10px;
-    text-align: center;
-    font-weight: 500;
-    border: 2px solid #003366;
-    border-radius: 5px;
-  }
-
-  /* Mạng xã hội */
-  .social-icons {
-    display: flex;
-    gap: 10px;
-    margin-top: 12px;
-  }
-
-  .social-icons img {
-    width: 30px;
-    height: 30px;
-    transition: transform 0.2s ease-in-out;
-  }
-
-  .social-icons img:hover {
-    transform: scale(1.1);
-  }
-
-  .footer-divider {
-    margin: 20px 0;
-    border-top: 1px solid #0056b3;
+  .btn-360:hover {
+      background-color: #F26522;
+      color: #fff;
+      transform: scale(1.05);
   }
 
   /* Responsive */
   @media (max-width: 768px) {
-    .footer .row {
-      text-align: center;
-    }
-
-    .footer-col {
-      align-items: center;
-    }
-
-
+      .footer-custom .col-lg-3, .footer-custom .col-lg-4, .footer-custom .col-lg-2 {
+          text-align: center;
+      }
+      .footer-social { justify-content: center; margin-top: 16px; }
+      .footer-info-list li, .clinic-info li { justify-content: center; }
   }
 
 
@@ -678,6 +738,14 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script>AOS.init({ duration: 800, once: true, offset: 100 });</script>
+
+  <script>
+      // Toggle Floating Contact Menu
+      document.getElementById('contactToggle').addEventListener('click', function() {
+          this.classList.toggle('active');
+          document.getElementById('contactMenu').classList.toggle('show');
+      });
+  </script>
 </body>
 
 </html>
