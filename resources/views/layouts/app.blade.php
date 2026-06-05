@@ -71,7 +71,9 @@
           </a>
 
           @guest
-          <a href="{{ route('login') }}" class="pmec-btn pmec-btn-outline">Đăng nhập</a>
+          <a href="{{ route('login') }}" class="pmec-btn pmec-btn-login">
+            <i class="bi bi-person-circle me-1"></i> Đăng nhập
+          </a>
           @else
           @if(Auth::user()->role === 'patient')
           <a href="{{ route('patient.account') }}" class="pmec-btn pmec-btn-outline">
@@ -383,6 +385,18 @@
     background-color: #03428E;
     color: #fff;
     transform: translateY(-1px);
+  }
+  .pmec-btn-login {
+    background: linear-gradient(135deg, #03428E, #0074D9);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px rgba(3,66,142,0.25);
+  }
+  .pmec-btn-login:hover {
+    background: linear-gradient(135deg, #023570, #005fba);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(3,66,142,0.4);
   }
   .pmec-btn-green {
     background-color: #28a745;
