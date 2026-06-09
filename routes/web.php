@@ -49,8 +49,9 @@ Route::get('/getDoctorScheduleWithFutureDates/{doctor}', [AdminController::class
 Route::get('/support', [SupportController::class, 'create'])->name('support.create');
 Route::post('/support', [SupportController::class, 'store'])->name('support.store');
 
-Route::get('/chatbot', [ChatbotController::class, 'index'])->name('chatbot.index');
+
 Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])->name('chatbot.send');
+Route::post('/chatbot/clear', [ChatbotController::class, 'clearHistory'])->name('chatbot.clear');
 
 /*
 |--------------------------------------------------------------------------

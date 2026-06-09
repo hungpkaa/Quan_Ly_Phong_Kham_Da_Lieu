@@ -437,60 +437,6 @@ a { text-decoration: none !important; }
     box-shadow: 0 6px 24px rgba(242,101,34,0.45);
 }
 
-/* ========== CHATBOT BUTTON WITH PULSE ========== */
-.chatbot-button {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: linear-gradient(135deg, #00AEEF, #03428E);
-    color: white;
-    border-radius: 50%;
-    width: 62px;
-    height: 62px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 26px;
-    box-shadow: 0 4px 16px rgba(3,66,142,0.35);
-    cursor: pointer;
-    z-index: 999;
-    transition: transform 0.3s ease;
-    animation: chatbotPulse 2s infinite;
-}
-.chatbot-button:hover {
-    transform: scale(1.12);
-    animation: none;
-}
-@keyframes chatbotPulse {
-    0% { box-shadow: 0 0 0 0 rgba(0,174,239,0.5); }
-    70% { box-shadow: 0 0 0 18px rgba(0,174,239,0); }
-    100% { box-shadow: 0 0 0 0 rgba(0,174,239,0); }
-}
-.chatbot-tooltip {
-    position: fixed;
-    bottom: 96px;
-    right: 28px;
-    background: linear-gradient(135deg, #03428E, #00AEEF);
-    color: white;
-    padding: 10px 18px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 500;
-    display: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 999;
-}
-.chatbot-tooltip::after {
-    content: '';
-    position: absolute;
-    bottom: -6px;
-    right: 20px;
-    width: 12px;
-    height: 12px;
-    background: #00AEEF;
-    transform: rotate(45deg);
-}
-
 /* ========== COOPERATION SECTION ========== */
 .cooperation-section {
     text-align: center;
@@ -894,22 +840,6 @@ a { text-decoration: none !important; }
     </div>
 </div>
 
-<!-- ===== CHATBOT FLOATING BUTTON ===== -->
-<div class="chatbot-tooltip" id="chatbot-tooltip">💬 Chat ngay với PhenikaaMec AI</div>
-<div class="chatbot-button" id="chatbot-button">
-    <i class="fas fa-comment-dots"></i>
-</div>
 
-<script>
-    document.getElementById('chatbot-button').addEventListener('click', function() {
-        window.location.href = "{{ route('chatbot.index') }}";
-    });
-    document.getElementById('chatbot-button').addEventListener('mouseenter', function() {
-        document.getElementById('chatbot-tooltip').style.display = 'block';
-    });
-    document.getElementById('chatbot-button').addEventListener('mouseleave', function() {
-        document.getElementById('chatbot-tooltip').style.display = 'none';
-    });
-</script>
 
 @endsection

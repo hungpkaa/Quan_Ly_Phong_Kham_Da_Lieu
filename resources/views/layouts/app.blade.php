@@ -759,6 +759,8 @@
           document.getElementById('contactMenu').classList.toggle('show');
       });
   </script>
+
+  @include('partials.chatbox')
 </body>
 
 </html>

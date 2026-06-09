@@ -15,18 +15,28 @@ class ChatbotController extends Controller
         $this->apiKey = env('OPENROUTER_API_KEY');
     }
 
-    public function index()
-    {
-        $chatHistory = session('chatbot_history', []);
-        return view('chatbot', compact('chatHistory'));
-    }
+
 
     public function sendMessage(Request $request)
     {
-        $userMessage = $request->input('message');
+        $request->validate([
+            'message' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' // max 5MB
+        ]);
+
+        $userMessage = $request->input('message') ?? '';
+        $hasImage = $request->hasFile('image');
+        $imageBase64 = null;
+        $imageMime = null;
+
+        if ($hasImage) {
+            $image = $request->file('image');
+            $imageMime = $image->getMimeType();
+            $imageBase64 = base64_encode(file_get_contents($image->getRealPath()));
+        }
 
         $context = "Bạn là PhenikaaMec AI, một trợ lý y tế chuyên nghiệp của hệ thống PhenikaaMec, chuyên về lĩnh vực Da liễu.
-Mục tiêu của bạn là tư vấn bệnh nhân, hỗ trợ bác sĩ, và cung cấp thông tin chính xác về các triệu chứng da liễu, thuốc điều trị, cách chữa tại nhà và bác sĩ phù hợp.
+Mục tiêu của bạn là tư vấn bệnh nhân, hỗ trợ bác sĩ, và cung cấp thông tin chính xác về các triệu chứng da liễu, thuốc điều trị, cách chữa tại nhà và bác sĩ phù hợp. Nếu người dùng gửi hình ảnh, hãy phân tích kỹ các triệu chứng trên da (màu sắc, nốt mụn, sưng đỏ, bong tróc...) để đưa ra nhận định chuyên môn.
 
 YÊU CẦU QUAN TRỌNG VỀ ĐỊNH DẠNG:
 - Trả lời thật RÕ RÀNG, GỌN GÀNG và RẤT NGẮN GỌN SÚC TÍCH.
@@ -126,14 +136,41 @@ Hãy tư vấn họ đặt lịch khám với:
         // --- Bắt đầu: Lấy lịch sử chat từ Session ---
         $chatHistory = session('chatbot_history', []);
         
-        // Thêm tin nhắn mới của người dùng vào lịch sử
-        $chatHistory[] = ["role" => "user", "content" => $userMessage];
+        // Chuẩn bị nội dung gửi cho OpenRouter ở request hiện tại (bao gồm ảnh nếu có)
+        $currentMessageContent = $userMessage;
         
+        if ($hasImage) {
+            $currentMessageContent = [
+                [
+                    "type" => "text",
+                    "text" => $userMessage !== '' ? $userMessage : "Hãy phân tích hình ảnh này giúp tôi."
+                ],
+                [
+                    "type" => "image_url",
+                    "image_url" => [
+                        "url" => "data:{$imageMime};base64,{$imageBase64}"
+                    ]
+                ]
+            ];
+        }
+
+        // Tạo mảng messages để gửi đi
         $messages = [
             ["role" => "system", "content" => $context]
         ];
-        // Chỉ lấy 10 tin nhắn gần nhất để tránh quá tải dung lượng (token)
+        
+        // Chỉ lấy 10 tin nhắn gần nhất từ lịch sử
         $messages = array_merge($messages, array_slice($chatHistory, -10));
+        
+        // Thêm tin nhắn HIỆN TẠI vào mảng gửi đi (có thể chứa chuỗi Base64 rất dài)
+        $messages[] = ["role" => "user", "content" => $currentMessageContent];
+
+        // Lưu vào Session (Chỉ lưu text để tránh tràn dung lượng Session do Base64)
+        $sessionMessage = $userMessage;
+        if ($hasImage) {
+            $sessionMessage = "[Đã gửi 1 hình ảnh] " . $userMessage;
+        }
+        $chatHistory[] = ["role" => "user", "content" => $sessionMessage];
         // --- Kết thúc ---
 
         $responseData = null;
@@ -185,5 +222,11 @@ Hãy tư vấn họ đặt lịch khám với:
         return response()->json([
             'message' => $botResponse
         ]);
+    }
+
+    public function clearHistory()
+    {
+        session()->forget('chatbot_history');
+        return response()->json(['success' => true]);
     }
 }
