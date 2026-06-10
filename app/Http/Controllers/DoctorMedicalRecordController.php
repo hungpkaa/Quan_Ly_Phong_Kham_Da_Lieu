@@ -12,7 +12,7 @@ class DoctorMedicalRecordController extends Controller
 {
     private function currentDoctor()
     {
-        return Doctor::where('email', Auth::user()->email)->firstOrFail();
+        return Auth::user()->doctor;
     }
 
     public function index(Request $request)
@@ -57,17 +57,29 @@ class DoctorMedicalRecordController extends Controller
             'diagnosis' => 'required|string',
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
+            'follow_up_date' => 'nullable|date',
         ]);
 
         $cost = $request->filled('cost') ? $request->input('cost') * 1000 : null;
 
-        MedicalRecord::create([
-            'doctor_id' => $this->currentDoctor()->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
+        $user = \App\Models\User::firstOrCreate(
+            ['phone' => $request->phone],
+            [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'role' => 'patient'
+            ]
+        );
+
+        $user->update([
             'age' => $request->age,
             'cccd' => $request->cccd,
+        ]);
+
+        MedicalRecord::create([
+            'doctor_id' => $this->currentDoctor()->id,
+            'user_id' => $user->id,
             'service' => $request->service,
             'exam_date' => $request->exam_date,
             'cost' => $cost,
@@ -78,7 +90,7 @@ class DoctorMedicalRecordController extends Controller
         ]);
 
         return redirect()->route('admindoctor.medicalrecords.index')
-            ->with('success', 'Ho so benh an da duoc tao thanh cong.');
+            ->with('success', 'Hồ sơ bệnh án đã được tạo thành công.');
     }
 
     public function edit($id)
@@ -92,8 +104,6 @@ class DoctorMedicalRecordController extends Controller
 
     public function update(Request $request, $id)
     {
-        $record = MedicalRecord::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
-
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -107,16 +117,24 @@ class DoctorMedicalRecordController extends Controller
             'diagnosis' => 'required|string',
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
+            'follow_up_date' => 'nullable|date',
         ]);
 
+        $record = MedicalRecord::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
+
         $cost = $request->filled('cost') ? $request->input('cost') * 1000 : null;
+        
+        if ($record->user) {
+            $record->user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'age' => $request->age,
+                'cccd' => $request->cccd,
+            ]);
+        }
 
         $record->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'age' => $request->age,
-            'cccd' => $request->cccd,
             'service' => $request->service,
             'exam_date' => $request->exam_date,
             'cost' => $cost,
@@ -124,10 +142,11 @@ class DoctorMedicalRecordController extends Controller
             'diagnosis' => $request->diagnosis,
             'prescription' => $request->prescription,
             'notes' => $request->notes,
+            'follow_up_date' => $request->follow_up_date,
         ]);
 
         return redirect()->route('admindoctor.medicalrecords.index')
-            ->with('success', 'Ho so benh an da duoc cap nhat thanh cong.');
+            ->with('success', 'Hồ sơ bệnh án đã được cập nhật thành công.');
     }
 
     public function destroy($id)
@@ -136,28 +155,28 @@ class DoctorMedicalRecordController extends Controller
         $record->delete();
 
         return redirect()->route('admindoctor.medicalrecords.index')
-            ->with('success', 'Ho so benh an da duoc xoa thanh cong.');
+            ->with('success', 'Hồ sơ bệnh án đã được xóa thành công.');
     }
 
     public function createFromAppointment(Request $request)
     {
         $doctorId = $this->currentDoctor()->id;
-        $appointment = Appointment::where('doctor_id', $doctorId)
+        $appointment = Appointment::with('user')->where('doctor_id', $doctorId)
             ->findOrFail($request->input('appointment_id'));
 
         $editMedicalRecord = new MedicalRecord([
-            'name' => $appointment->name,
-            'email' => $appointment->email,
-            'phone' => $appointment->phone,
-            'age' => $appointment->age,
-            'cccd' => $appointment->cccd,
             'exam_date' => $appointment->appointment_date,
         ]);
 
+        if ($appointment->user) {
+            $editMedicalRecord->setRelation('user', $appointment->user);
+        }
+
         $editMedicalRecord->id = null;
 
-        $medicalRecords = MedicalRecord::where('doctor_id', $doctorId)->latest()->get();
+        $medicalRecords = MedicalRecord::where('doctor_id', $doctorId)->latest()->paginate(10);
+        $search = null;
 
-        return view('role.doctormanagemedicalrecords', compact('editMedicalRecord', 'medicalRecords'));
+        return view('role.doctormanagemedicalrecords', compact('editMedicalRecord', 'medicalRecords', 'search'));
     }
 }

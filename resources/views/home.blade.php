@@ -512,7 +512,7 @@ a { text-decoration: none !important; }
                         <a href="/appointments/create" class="hero-cta hero-cta-primary">
                             <i class="bi bi-calendar-check me-2"></i> Đặt lịch khám ngay
                         </a>
-                        <a href="/chatbot" class="hero-cta hero-cta-secondary">
+                        <a href="javascript:void(0)" onclick="if(typeof toggleChat === 'function') toggleChat(); else alert('Vui lòng đợi chatbot tải xong');" class="hero-cta hero-cta-secondary">
                             <i class="bi bi-chat-dots me-2"></i> Nhận tư vấn
                         </a>
                     </div>

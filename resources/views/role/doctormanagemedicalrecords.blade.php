@@ -1,405 +1,318 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.admin_layout')
 
+@section('title', 'Quản lý Hồ Sơ Bệnh Án')
 
-@section('title', 'Quản lý Hồ Sơ Bệnh Án - Bác Sĩ')
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-</head>
-
-<body>
-    <header>
-        <div class="py-3" style="background-color: #e0f7fa; border-bottom: 1px solid #ccc;">
-            <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- Logo -->
-                <a href="{{ url('/admindoctor/dashboard') }}" class="d-flex align-items-center">
-                    <img src="/img/logo.webp" alt="Logo" style="height: 50px;">
-                </a>
-
-                <!-- Search -->
-                <div class="d-flex align-items-center" style="max-width: 400px; width: 100%;">
-                    <input type="text" class="form-control" placeholder="Tìm kiếm..." style="border-radius: 25px;">
-                    <button class="btn btn-primary ms-2" style="border-radius: 25px;">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-
-                <!-- Actions -->
-                <a href="/appointments/create" class="btn btn-primary btn-sm rounded-pill px-3"
-                    style="background-color: #007bff; border-color: #007bff;">Đặt lịch khám</a>
-                <a href="#" class="btn btn-info btn-sm rounded-pill px-3" style="color: white;">1900 886648</a>
-                <a href="#" class="btn btn-warning btn-sm rounded-pill px-3" style="color: white;">Hướng dẫn khách
-                    hàng</a>
-
-                <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="d-inline-block">
-                    @csrf
-                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">Đăng xuất</button>
-                </form>
-
-                <!-- Language Dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-light btn-sm rounded-circle dropdown-toggle" id="languageDropdown"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="/img/vietnam.png" alt="VN" style="height: 20px;"> <!-- Icon cờ -->
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item" href="#">Vietnamese</a></li>
-                        <li><a class="dropdown-item" href="#">English</a></li>
-                    </ul>
-                </div>
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <!-- Header Page -->
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h3 class="mb-1" style="color: #0056b3; font-weight: 600;">Hồ Sơ Bệnh Án</h3>
+                <p class="text-secondary mb-0">Quản lý và lưu trữ thông tin khám chữa bệnh của khách hàng.</p>
+            </div>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium" data-bs-toggle="modal" data-bs-target="#addRecordModal">
+                    <i class="bi bi-plus-lg me-1"></i> Thêm Hồ Sơ Mới
+                </button>
             </div>
         </div>
-    </header>
-
-
-
-
-
-    <div class="container py-4">
-        <h1 class="text-center mb-4">Quản lý Hồ Sơ Bệnh Án</h1>
-
-        <!-- Form tìm kiếm hồ sơ bệnh án -->
-        <form method="GET" action="{{ route('admindoctor.medicalrecords.index') }}" class="mb-4">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Tìm kiếm..."
-                    value="{{ request('search') }}">
-                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
-            </div>
-        </form>
-
-        <!-- Kiểm tra nếu đang chỉnh sửa hoặc tạo mới -->
-        <h3 class="mb-3">{{ isset($editMedicalRecord) ? 'Sửa Hồ Sơ Bệnh Án' : 'Thêm Hồ Sơ Bệnh Án' }}</h3>
-
-        @php $isEditing = isset($editMedicalRecord) && !empty($editMedicalRecord->id);
-        @endphp
-
-        <form method="POST"
-            action="{{ $isEditing ? route('admindoctor.medicalrecords.update', $editMedicalRecord->id) : route('admindoctor.medicalrecords.store') }}">
-
-            @csrf
-            @if($isEditing)
-            @method('PUT')
-            @endif
-
-
-            <div class="row">
-                <div class="col-md-4">
-                    <label>Tên Bệnh Nhân</label>
-                    <input type="text" name="name" class="form-control"
-                        value="{{ old('name', $editMedicalRecord->name ?? '') }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label>Email</label>
-                    <input type="email" name="email" class="form-control"
-                        value="{{ old('email', $editMedicalRecord->email ?? '') }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label>Số Điện Thoại</label>
-                    <input type="text" name="phone" class="form-control"
-                        value="{{ old('phone', $editMedicalRecord->phone ?? '') }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label>Tuổi</label>
-                    <input type="number" name="age" class="form-control"
-                        value="{{ old('age', $editMedicalRecord->age ?? '') }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label>CCCD</label>
-                    <input type="text" name="cccd" class="form-control"
-                        value="{{ old('cccd', $editMedicalRecord->cccd ?? '') }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label>Dịch Vụ</label>
-                    <input type="text" name="service" class="form-control"
-                        value="{{ old('service', $editMedicalRecord->service ?? '') }}">
-                </div>
-                <div class="col-md-4">
-                    <label>Ngày Khám</label>
-                    <input type="date" name="exam_date" class="form-control"
-                        value="{{ old('exam_date', $editMedicalRecord->exam_date ?? '') }}" required>
-                </div>
-                <div class="col-md-4">
-                    <label>Chi Phí</label>
-                    <div class="input-group">
-                        <input type="number" step="any" name="cost" class="form-control"
-                            value="{{ isset($editMedicalRecord) ? $editMedicalRecord->cost / 1000 : old('cost') }}"
-                            required>
-                        <span class="input-group-text">.000 VNĐ</span>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <label>Trạng Thái Thanh Toán</label>
-                    <select name="status" class="form-control" required>
-                        <option value="unpaid"
-                            {{ (isset($editMedicalRecord) && $editMedicalRecord->status == 'unpaid') ? 'selected' : '' }}>
-                            Chưa thanh toán</option>
-                        <option value="paid"
-                            {{ (isset($editMedicalRecord) && $editMedicalRecord->status == 'paid') ? 'selected' : '' }}>
-                            Đã
-                            thanh toán</option>
-                    </select>
-                </div>
-                <div class="col-md-12">
-                    <label>Chẩn Đoán</label>
-                    <textarea name="diagnosis" class="form-control" rows="3"
-                        required>{{ old('diagnosis', $editMedicalRecord->diagnosis ?? '') }}</textarea>
-                </div>
-                <div class="col-md-12">
-                    <label>Toa Thuốc</label>
-                    <textarea name="prescription" class="form-control"
-                        rows="3">{{ old('prescription', $editMedicalRecord->prescription ?? '') }}</textarea>
-                </div>
-                <div class="col-md-12">
-                    <label>Ghi Chú</label>
-                    <textarea name="notes" class="form-control"
-                        rows="3">{{ old('notes', $editMedicalRecord->notes ?? '') }}</textarea>
-                </div>
-                <div class="col-12">
-                    <button type="submit"
-                        class="btn {{ isset($editMedicalRecord) ? 'btn-warning' : 'btn-success' }} w-100">
-                        {{ isset($editMedicalRecord) ? 'Lưu Thay Đổi' : 'Thêm Hồ Sơ Bệnh Án' }}
-                    </button>
-                </div>
-            </div>
-        </form>
-
-        <!-- Danh sách hồ sơ bệnh án -->
-        @if($medicalRecords->isEmpty())
-        <div class="alert alert-info text-center">Không có hồ sơ bệnh án nào.</div>
-        @else
-        <div class="table-responsive">
-            <table class="table table-bordered mt-4">
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Bệnh Nhân</th>
-                        <th>Email</th>
-                        <th>SĐT</th>
-                        <th>Ngày Khám</th>
-                        <th>Dịch Vụ</th>
-                        <th>Chi Phí</th>
-                        <th>Trạng Thái</th>
-                        <th>Chẩn Đoán</th>
-                        <th>Toa Thuốc</th>
-                        <th>Ghi Chú</th>
-                        <th>Hành Động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($medicalRecords as $record)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $record->name }}</td>
-                        <td>{{ $record->email }}</td>
-                        <td>{{ $record->phone }}</td>
-                        <td>{{ $record->exam_date }}</td>
-                        <td>{{ $record->service }}</td>
-                        <td>{{ number_format($record->cost / 1000, 0) }}.000 VNĐ</td>
-                        <td>{{ $record->status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán' }}</td>
-                        <td>{{ $record->diagnosis }}</td>
-                        <td>{{ $record->prescription }}</td>
-                        <td>{{ $record->notes }}</td>
-                        <td>
-                            <a href="{{ route('admindoctor.invoices.create', ['medical_record_id' => $record->id]) }}"
-                                class="btn btn-success btn-sm">
-                                -> Tạo Hóa Đơn
-                            </a>
-                            <a href="{{ route('admindoctor.medicalrecords.index', ['edit_id' => $record->id]) }}"
-                                class="btn btn-warning btn-sm">Sửa</a>
-                            <form method="POST" action="{{ route('admindoctor.medicalrecords.destroy', $record->id) }}"
-                                class="d-inline">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
-                            </form>
-                        </td>
-
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @endif
     </div>
 
+    <!-- Alert Messages -->
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> <strong>Thành công!</strong> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Lỗi!</strong> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
 
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <!-- Cột 1: Thông tin bệnh viện -->
-                <div class="col-md-3 footer-col">
-                    <a href="#" class="footer-logo">
-                        <img src="{{ asset('img/phenikaamec.webp') }}" alt="PHENIKAA MEC">
-                    </a>
-
-                    <p><strong>Bệnh viện Đại Học Phenikaa</strong></p>
-                    <p>📍 Đường Kiều Mai, P. Phương Canh, Nam Từ Liêm, Hà Nội</p>
-                    <p>📜 Giấy phép hoạt động số 386/BYT</p>
-                    <p>📞 Hotline: <a href="tel:1900886648">1900.88.66.48</a> - <a
-                            href="tel:02422226688">02422226688</a></p>
-                    <p>📧 Email: <a href="mailto:support@phenikaamec.com">support@phenikaamec.com</a></p>
+    <!-- Danh sách Hồ sơ bệnh án -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom py-3 px-4 rounded-top-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">
+                <i class="bi bi-journal-medical me-2"></i> Danh Sách Bệnh Án
+            </h6>
+            
+            <!-- Form tìm kiếm -->
+            <form method="GET" action="{{ route('admindoctor.medicalrecords.index') }}" class="d-flex align-items-center" style="max-width: 400px; width: 100%; margin: 0;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0 rounded-start-pill text-secondary px-3">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control bg-light border-start-0 rounded-end-pill focus-ring focus-ring-light py-2" placeholder="Tìm tên bệnh nhân, SĐT, Email..." value="{{ request('search') }}">
                 </div>
-
-                <!-- Cột 2: Hệ thống phòng khám -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">HỆ THỐNG PHÒNG KHÁM</h5>
-                    <p><strong>Phòng Khám Đa Khoa - Hoàng Ngân</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:02422226699">02422226699</a></p>
-                    <p>⏰ Giờ làm việc: 7h30 - 17h00</p>
-
-                    <p><strong>Phòng Khám Răng Hàm Mặt</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:0978625499">0978625499</a></p>
-                    <p>⏰ Giờ làm việc: 8h00 - 18h00</p>
-                </div>
-
-                <!-- Cột 3: Liên kết nhanh -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">LIÊN KẾT NHANH</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Chương trình Bác sĩ hợp tác</a></li>
-                        <li><a href="#">Chuyên khoa</a></li>
-                        <li><a href="#">Dịch vụ</a></li>
-                        <li><a href="#">Bệnh học</a></li>
-                    </ul>
-                </div>
-
-                <!-- Cột 4: Ứng dụng & Mạng xã hội -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">TẢI APP PHENIKAA MEC</h5>
-                    <div class="qr-box">
-                        <a href="#"><img src="{{ asset('img/qr.png') }}" alt="Facebook"></a>
-                    </div>
-
-                    <div class="social-icons">
-                        <a href="#"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
-                        <a href="#"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
-                        <a href="#"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
-                    </div>
-                </div>
-            </div>
-
-            <hr class="footer-divider">
-
-            <div class="text-center">
-                <p>&copy; {{ date('Y') }} thuộc về Bệnh viện Đại học Phenikaa</p>
-                <p><a href="#">Điều khoản sử dụng</a> | <a href="#">Chính sách bảo mật</a></p>
-            </div>
+            </form>
         </div>
-    </footer>
+        
+        <div class="card-body p-0">
+            @if($medicalRecords->isEmpty())
+                <div class="text-center py-5">
+                    <div class="text-secondary opacity-50 mb-3"><i class="bi bi-folder-x fs-1"></i></div>
+                    <p class="mb-0 text-secondary">Không tìm thấy hồ sơ bệnh án nào.</p>
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 60px;">#</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Bệnh Nhân</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Ngày Khám</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Dịch Vụ / Chẩn Đoán</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center">Trạng Thái</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 140px;">Hành Động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($medicalRecords as $record)
+                            <tr>
+                                <td class="py-3 text-center text-secondary">{{ $loop->iteration }}</td>
+                                <td class="py-3">
+                                    <div class="fw-semibold text-dark">{{ optional($record->user)->name }}</div>
+                                    <div class="text-secondary small">SĐT: {{ optional($record->user)->phone }} | Tuổi: {{ optional($record->user)->age }}</div>
+                                </td>
+                                <td class="py-3 text-secondary small">
+                                    <i class="bi bi-calendar-event me-1"></i>{{ \Carbon\Carbon::parse($record->exam_date)->format('d/m/Y') }}
+                                </td>
+                                <td class="py-3">
+                                    <div class="text-dark small fw-medium mb-1"><span class="badge bg-light text-dark border px-2 py-1">{{ $record->service ?: 'Khám tổng quát' }}</span></div>
+                                    <div class="text-secondary small text-truncate" style="max-width: 250px;" title="{{ $record->diagnosis }}">{{ $record->diagnosis }}</div>
+                                </td>
+                                <td class="py-3 text-center">
+                                    @if($record->status === 'paid')
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill fw-medium px-2 py-1"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>
+                                    @else
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill fw-medium px-2 py-1">Chưa thanh toán</span>
+                                    @endif
+                                </td>
+                                <td class="py-3 text-center">
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <button class="btn btn-sm btn-light border text-info rounded-circle view-btn" data-bs-toggle="modal" data-bs-target="#viewRecordModal-{{ $record->id }}" title="Xem chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <a href="{{ route('admindoctor.invoices.create', ['medical_record_id' => $record->id]) }}" class="btn btn-sm btn-light border text-success rounded-circle" title="Tạo hóa đơn">
+                                            <i class="bi bi-receipt"></i>
+                                        </a>
+                                        <a href="{{ route('admindoctor.medicalrecords.index', ['edit_id' => $record->id]) }}" class="btn btn-sm btn-light border text-primary rounded-circle" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <form method="POST" action="{{ route('admindoctor.medicalrecords.destroy', $record->id) }}" class="m-0">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-light border text-danger rounded-circle" onclick="return confirm('Bạn có chắc chắn muốn xóa hồ sơ này?')" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
 
-    <style>
-    /* Font chữ từ Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+                            <!-- Modal Xem Chi Tiết -->
+                            <div class="modal fade" id="viewRecordModal-{{ $record->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-content border-0 shadow rounded-4">
+                                        <div class="modal-header border-bottom py-3 px-4 bg-light rounded-top-4">
+                                            <h5 class="modal-title fw-semibold text-primary">
+                                                <i class="bi bi-file-medical me-2"></i>Chi Tiết Hồ Sơ Bệnh Án
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <div class="row g-4">
+                                                <div class="col-md-6">
+                                                    <h6 class="text-secondary fw-semibold border-bottom pb-2 mb-3">Thông tin bệnh nhân</h6>
+                                                    <div class="d-flex flex-column gap-2 small">
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Họ tên:</span> <span class="fw-medium text-dark">{{ optional($record->user)->name }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Tuổi:</span> <span class="fw-medium text-dark">{{ optional($record->user)->age }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">CCCD:</span> <span class="fw-medium text-dark">{{ optional($record->user)->cccd }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">SĐT:</span> <span class="fw-medium text-dark">{{ optional($record->user)->phone }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Email:</span> <span class="fw-medium text-dark">{{ optional($record->user)->email }}</span></div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6 class="text-secondary fw-semibold border-bottom pb-2 mb-3">Thông tin khám bệnh</h6>
+                                                    <div class="d-flex flex-column gap-2 small">
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Ngày khám:</span> <span class="fw-medium text-dark">{{ \Carbon\Carbon::parse($record->exam_date)->format('d/m/Y') }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Tái khám:</span> <span class="fw-medium text-danger">{{ $record->follow_up_date ? \Carbon\Carbon::parse($record->follow_up_date)->format('d/m/Y') : 'Không' }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Dịch vụ:</span> <span class="fw-medium text-dark">{{ $record->service }}</span></div>
+                                                        <div class="d-flex justify-content-between"><span class="text-muted">Chi phí:</span> <span class="fw-medium text-danger">{{ number_format($record->cost, 0) }} đ</span></div>
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">Trạng thái TT:</span> 
+                                                            @if($record->status === 'paid')
+                                                                <span class="text-success fw-medium">Đã thanh toán</span>
+                                                            @else
+                                                                <span class="text-warning fw-medium">Chưa thanh toán</span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-12">
+                                                    <h6 class="text-secondary fw-semibold border-bottom pb-2 mb-3">Kết quả lâm sàng</h6>
+                                                    <div class="mb-3">
+                                                        <label class="text-muted small fw-medium mb-1">Chẩn đoán:</label>
+                                                        <div class="p-3 bg-light rounded-3 small text-dark border">{{ $record->diagnosis ?: 'Chưa cập nhật' }}</div>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="text-muted small fw-medium mb-1">Toa thuốc:</label>
+                                                        <div class="p-3 bg-light rounded-3 small text-dark border" style="white-space: pre-wrap;">{{ $record->prescription ?: 'Không kê đơn' }}</div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-muted small fw-medium mb-1">Ghi chú thêm:</label>
+                                                        <div class="p-3 bg-light rounded-3 small text-dark border fst-italic">{{ $record->notes ?: 'Không có ghi chú' }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
 
-    /* Footer Styles */
-    .footer {
-        background-color: #b3e5fc;
-        color: #003366;
-        font-family: 'Poppins', sans-serif;
-        padding: 40px 10%;
-    }
+<!-- Modal Thêm/Sửa Hồ Sơ -->
+@php 
+    $isEditing = isset($editMedicalRecord) && !empty($editMedicalRecord->id); 
+    $showModal = isset($editMedicalRecord);
+@endphp
+<div class="modal fade" id="addRecordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom py-3 px-4 bg-light rounded-top-4">
+                <h5 class="modal-title fw-semibold text-primary">
+                    <i class="bi bi-journal-medical me-2"></i>{{ $isEditing ? 'Cập Nhật Hồ Sơ Bệnh Án' : 'Lập Hồ Sơ Bệnh Án Mới' }}
+                </h5>
+                @if($showModal)
+                    <a href="{{ route('admindoctor.medicalrecords.index') }}" class="btn-close"></a>
+                @else
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                @endif
+            </div>
+            <form method="POST" action="{{ $isEditing ? route('admindoctor.medicalrecords.update', $editMedicalRecord->id) : route('admindoctor.medicalrecords.store') }}">
+                @csrf
+                @if($isEditing)
+                    @method('PUT')
+                @endif
+                <div class="modal-body p-4">
+                    <div class="row g-4">
+                        <!-- Thông tin cá nhân -->
+                        <div class="col-lg-4">
+                            <h6 class="text-secondary fw-semibold border-bottom pb-2 mb-3">Thông tin cá nhân</h6>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary fw-medium small mb-1">Tên Bệnh Nhân <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('name', $editMedicalRecord?->user?->name ?? '') }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary fw-medium small mb-1">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="text" name="phone" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('phone', $editMedicalRecord?->user?->phone ?? '') }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary fw-medium small mb-1">Email <span class="text-danger">*</span></label>
+                                <input type="email" name="email" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('email', $editMedicalRecord?->user?->email ?? '') }}" required>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label text-secondary fw-medium small mb-1">Tuổi <span class="text-danger">*</span></label>
+                                    <input type="number" name="age" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('age', $editMedicalRecord?->user?->age ?? '') }}" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-secondary fw-medium small mb-1">CCCD <span class="text-danger">*</span></label>
+                                    <input type="text" name="cccd" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('cccd', $editMedicalRecord?->user?->cccd ?? '') }}" required>
+                                </div>
+                            </div>
+                        </div>
 
-    .footer-col {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-    }
+                        <!-- Thông tin khám bệnh -->
+                        <div class="col-lg-8">
+                            <h6 class="text-secondary fw-semibold border-bottom pb-2 mb-3">Thông tin khám & Chẩn đoán</h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-3">
+                                    <label class="form-label text-secondary fw-medium small mb-1">Ngày Khám <span class="text-danger">*</span></label>
+                                    <input type="date" name="exam_date" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('exam_date', $editMedicalRecord->exam_date ?? now()->format('Y-m-d')) }}" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-secondary fw-medium small mb-1">Tái khám</label>
+                                    <input type="date" name="follow_up_date" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('follow_up_date', $editMedicalRecord->follow_up_date ?? '') }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-secondary fw-medium small mb-1">Dịch vụ sử dụng</label>
+                                    <input type="text" name="service" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('service', $editMedicalRecord->service ?? '') }}" placeholder="Vd: Khám da liễu">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-secondary fw-medium small mb-1">Thanh toán</label>
+                                    <select name="status" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2">
+                                        <option value="unpaid" {{ (isset($editMedicalRecord) && $editMedicalRecord->status == 'unpaid') ? 'selected' : '' }}>Chưa thanh toán</option>
+                                        <option value="paid" {{ (isset($editMedicalRecord) && $editMedicalRecord->status == 'paid') ? 'selected' : '' }}>Đã thanh toán</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label text-secondary fw-medium small mb-1">Chi phí khám / Dịch vụ <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="number" step="any" name="cost" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ isset($editMedicalRecord) ? $editMedicalRecord->cost / 1000 : old('cost') }}" placeholder="Nhập số tiền..." required>
+                                    <span class="input-group-text bg-light border-0 text-secondary px-4 fw-medium">.000 VNĐ</span>
+                                </div>
+                            </div>
 
-    .footer-logo img {
-        max-width: 180px;
-        /* Giới hạn kích thước logo */
-        display: block;
-        margin-bottom: 10px;
-        /* Tạo khoảng cách với nội dung */
-    }
+                            <div class="mb-3">
+                                <label class="form-label text-secondary fw-medium small mb-1">Chẩn Đoán Lâm Sàng <span class="text-danger">*</span></label>
+                                <textarea name="diagnosis" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" rows="2" placeholder="Ghi nhận tình trạng bệnh lý..." required>{{ old('diagnosis', $editMedicalRecord->diagnosis ?? '') }}</textarea>
+                            </div>
 
-    .footer-title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #0056b3;
-        margin-bottom: 12px;
-    }
+                            <div class="mb-3">
+                                <label class="form-label text-secondary fw-medium small mb-1">Toa Thuốc Kê Đơn</label>
+                                <textarea name="prescription" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" rows="2" placeholder="Tên thuốc, liều lượng, cách dùng...">{{ old('prescription', $editMedicalRecord->prescription ?? '') }}</textarea>
+                            </div>
 
-    .footer a {
-        color: #003366;
-        text-decoration: none;
-        font-size: 14px;
-        font-weight: 400;
-    }
+                            <div class="mb-0">
+                                <label class="form-label text-secondary fw-medium small mb-1">Ghi Chú Dặn Dò</label>
+                                <textarea name="notes" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" rows="2" placeholder="Dặn dò tái khám, kiêng cữ...">{{ old('notes', $editMedicalRecord->notes ?? '') }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4">
+                    @if($isEditing)
+                        <a href="{{ route('admindoctor.medicalrecords.index') }}" class="btn btn-secondary rounded-pill px-4">Hủy Bỏ</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium"><i class="bi bi-save me-2"></i>Lưu Thay Đổi</button>
+                    @else
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium"><i class="bi bi-plus-lg me-2"></i>Tạo Hồ Sơ</button>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    .footer a:hover {
-        color: #0056b3;
-        text-decoration: underline;
-    }
+@push('scripts')
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
 
-    .footer p {
-        font-size: 14px;
-        font-weight: 400;
-    }
-
-    .footer .list-unstyled li {
-        margin-bottom: 6px;
-    }
-
-    .qr-box {
-        background: white;
-        padding: 10px;
-        text-align: center;
-        font-weight: 500;
-        border: 2px solid #003366;
-        border-radius: 5px;
-    }
-
-    /* Mạng xã hội */
-    .social-icons {
-        display: flex;
-        gap: 10px;
-        margin-top: 12px;
-    }
-
-    .social-icons img {
-        width: 30px;
-        height: 30px;
-        transition: transform 0.2s ease-in-out;
-    }
-
-    .social-icons img:hover {
-        transform: scale(1.1);
-    }
-
-    .footer-divider {
-        margin: 20px 0;
-        border-top: 1px solid #0056b3;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .footer .row {
-            text-align: center;
-        }
-
-        .footer-col {
-            align-items: center;
-        }
-
-
-    }
-    </style>
-
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
-
-</body>
-
-</html>
+        @if(isset($showModal) && $showModal)
+        var addRecordModal = new bootstrap.Modal(document.getElementById('addRecordModal'), {
+            keyboard: false
+        });
+        addRecordModal.show();
+        @endif
+    });
+</script>
+@endpush
+@endsection

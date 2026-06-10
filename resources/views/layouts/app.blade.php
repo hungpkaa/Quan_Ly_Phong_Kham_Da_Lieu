@@ -51,21 +51,9 @@
           <a href="/appointments/create" class="pmec-btn pmec-btn-orange">
             <i class="bi bi-calendar-check me-1"></i> Đặt lịch khám
           </a>
-          @auth
-            @if(Auth::user()->phone)
-            <a href="tel:{{ Auth::user()->phone }}" class="pmec-btn pmec-btn-darkblue">
-              <i class="bi bi-telephone-fill me-1"></i> {{ Auth::user()->phone }}
-            </a>
-            @else
-            <a href="tel:0886314896" class="pmec-btn pmec-btn-darkblue">
-              <i class="bi bi-telephone-fill me-1"></i> 0886314896
-            </a>
-            @endif
-          @else
-          <a href="tel:0886314896" class="pmec-btn pmec-btn-darkblue">
-            <i class="bi bi-telephone-fill me-1"></i> 0886314896
+          <a href="tel:1900886648" class="pmec-btn pmec-btn-darkblue">
+            <i class="bi bi-telephone-fill me-1"></i> 1900 886648
           </a>
-          @endauth
           <a href="/support" class="pmec-btn pmec-btn-lightblue">
             <i class="bi bi-info-circle me-1"></i> Hướng dẫn khách hàng
           </a>
@@ -125,19 +113,7 @@
   </header>
 
 
-  <style>
-  /* Căn giữa thông báo thành công */
-  .alert-success {
-    text-align: center;
-  }
-  </style>
 
-
-  @if(session('success'))
-  <div class="alert alert-success">
-    {{ session('success') }}
-  </div>
-  @endif
   <div class="content">
     @yield('content')
   </div>
@@ -171,36 +147,30 @@
           }
 
           let html = "";
+          
+          const buildItem = (image, title, link) => {
+            return `
+              <a href="${link}" class="d-flex align-items-center p-2 px-3 text-decoration-none text-dark pmec-search-item">
+                  <img src="${image}" class="rounded-3 me-3 border shadow-sm" 
+                       style="width: 45px; height: 45px; object-fit: cover;">
+                  <span class="fs-6 text-truncate" style="max-width: calc(100% - 60px);">${title}</span>
+              </a>
+            `;
+          };
 
           // Hiển thị danh sách bác sĩ
           if (data.doctors.length > 0) {
-            html += "<div class='p-2 fw-bold'>Bác sĩ</div>";
+            html += "<div class='px-3 py-2 small text-secondary fw-semibold bg-light border-bottom'>KẾT QUẢ BÁC SĨ</div>";
             data.doctors.forEach(doctor => {
-              html += `
-                            <div class="d-flex align-items-center p-2 border-bottom">
-                                <img src="${doctor.image}" class="rounded-circle me-2" 
-                                     style="width: 40px; height: 40px; object-fit: cover;">
-                                <a href="/doctors/${doctor.id}" class="text-dark text-decoration-none">
-                                    ${doctor.name}
-                                </a>
-                            </div>
-                        `;
+              html += buildItem(doctor.image, doctor.name, `/doctors/${doctor.id}`);
             });
           }
 
           // Hiển thị danh sách dịch vụ
           if (data.services.length > 0) {
-            html += "<div class='p-2 fw-bold'>Dịch vụ</div>";
+            html += "<div class='px-3 py-2 small text-secondary fw-semibold bg-light border-bottom border-top'>KẾT QUẢ DỊCH VỤ</div>";
             data.services.forEach(service => {
-              html += `
-                            <div class="d-flex align-items-center p-2 border-bottom">
-                                <img src="${service.image}" class="rounded-circle me-2" 
-                                     style="width: 40px; height: 40px; object-fit: cover;">
-                                <a href="/services/${service.id}" class="text-dark text-decoration-none">
-                                    ${service.name}
-                                </a>
-                            </div>
-                        `;
+              html += buildItem(service.image, service.name, `/services/${service.id}`);
             });
           }
 
@@ -227,6 +197,21 @@
   <style>
   /* Font chữ từ Google Fonts */
   @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+  /* ========== SEARCH DROPDOWN ========== */
+  #searchResults {
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 1px solid #eaeaea;
+    overflow: hidden;
+    padding-bottom: 5px;
+  }
+  .pmec-search-item {
+    transition: all 0.2s ease;
+  }
+  .pmec-search-item:hover {
+    background-color: #f4f6f8;
+  }
 
   /* ========== SLOGAN BAR ========== */
   .pmec-slogan-bar {

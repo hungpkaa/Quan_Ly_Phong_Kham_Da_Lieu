@@ -26,7 +26,7 @@
                 <tbody>
                     @foreach($appointments as $appointment)
                         <tr>
-                            <td>{{ optional($appointment->doctor)->name ?? 'Chua co thong tin' }}</td>
+                            <td>{{ optional(optional($appointment->doctor)->user)->name ?? 'Chua co thong tin' }}</td>
                             <td>{{ $appointment->appointment_date }}</td>
                             <td>
                                 @if($appointment->shift === 'morning')

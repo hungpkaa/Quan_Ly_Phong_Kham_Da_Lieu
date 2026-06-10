@@ -18,9 +18,11 @@ class AdminInvoiceController extends Controller
         // Tìm kiếm hóa đơn nếu có input search
         if ($request->has('search')) {
             $search = $request->input('search');
-            $query->where('patient_name', 'like', "%$search%")
-                ->orWhere('phone', 'like', "%$search%")
-                ->orWhere('services_medicines', 'like', "%$search%");
+            $query->whereHas('medicalRecord.user', function($uq) use ($search) {
+                $uq->where('name', 'like', "%$search%")
+                   ->orWhere('phone', 'like', "%$search%");
+            })
+            ->orWhere('services_medicines', 'like', "%$search%");
         }
 
         // Lấy danh sách hóa đơn
@@ -72,9 +74,6 @@ class AdminInvoiceController extends Controller
         // Tạo hóa đơn mới
         Invoice::create([
             'medical_record_id' => $medicalRecord->id,
-            'patient_name' => $medicalRecord->name,
-            'exam_date' => $medicalRecord->exam_date,
-            'phone' => $medicalRecord->phone,
             'services_medicines' => $medicalRecord->service . "; " . $medicalRecord->prescription,
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,

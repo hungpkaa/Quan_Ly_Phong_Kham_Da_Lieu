@@ -1,449 +1,252 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.admin_layout')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Quản lý Bác Sĩ')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    <style>
-        /* Custom responsive adjustments */
-        header .container {
-            flex-wrap: wrap;
-        }
+@section('title', 'Quản lý Bác Sĩ')
 
-        .alert {
-            text-align: center;
-            width: 100%;
-            margin: 20px auto;
-            /* Căn giữa theo chiều ngang */
-            padding: 15px;
-            font-size: 18px;
-        }
-
-        .footer {
-            background-color: #b3e5fc;
-            color: #003366;
-            font-family: 'Poppins', sans-serif;
-            padding: 40px 10%;
-        }
-
-        .footer-col {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .footer-logo img {
-            max-width: 180px;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .footer-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #0056b3;
-            margin-bottom: 12px;
-        }
-
-        .footer a {
-            color: #003366;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .footer a:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-
-        .footer p {
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .footer .list-unstyled li {
-            margin-bottom: 6px;
-        }
-
-        .qr-box {
-            background: white;
-            padding: 10px;
-            text-align: center;
-            font-weight: 500;
-            border: 2px solid #003366;
-            border-radius: 5px;
-        }
-
-        .social-icons {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .social-icons img {
-            width: 30px;
-            height: 30px;
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .social-icons img:hover {
-            transform: scale(1.1);
-        }
-
-        .footer-divider {
-            margin: 20px 0;
-            border-top: 1px solid #0056b3;
-        }
-
-        @media (max-width: 768px) {
-            .footer-col {
-                align-items: center;
-            }
-        }
-    </style>
-</head>
-
-<body>
-    <header>
-        <div class="py-3" style="background-color: #e0f7fa; border-bottom: 1px solid #ccc;">
-            <div class="container d-flex justify-content-between align-items-center">
-                <!-- Logo -->
-                <a href="{{ url('/admin/dashboard') }}" class="d-flex align-items-center">
-                    <img src="{{ asset('img/logo.webp') }}" alt="Logo" class="img-fluid" style="height: 50px;">
-                </a>
-                <!-- Search -->
-                <div class="d-flex align-items-center flex-grow-1 mx-2" style="max-width: 400px; width: 100%;">
-                    <input type="text" class="form-control" placeholder="Tìm kiếm..." style="border-radius: 25px;">
-                    <button class="btn btn-primary ms-2" style="border-radius: 25px;">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-                <!-- Actions -->
-                <div class="d-flex align-items-center flex-wrap gap-2">
-                    <a href="#" class="btn btn-primary btn-sm rounded-pill px-3">Đặt lịch khám</a>
-                    <a href="#" class="btn btn-info btn-sm rounded-pill px-3" style="color: white;">1900 886648</a>
-                    <a href="#" class="btn btn-warning btn-sm rounded-pill px-3" style="color: white;">Hướng dẫn khách
-                        hàng</a>
-                    <!-- Logout -->
-                    <form method="POST" action="{{ route('logout') }}" class="d-inline-block">
-                        @csrf
-                        <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">Đăng xuất</button>
-                    </form>
-                    <!-- Language Dropdown -->
-                    <div class="dropdown">
-                        <button class="btn btn-light btn-sm rounded-circle dropdown-toggle" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="{{ asset('img/iconVN.png') }}" alt="VN" class="img-fluid" style="height: 20px;">
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                            <li><a class="dropdown-item" href="#">Vietnamese</a></li>
-                            <li><a class="dropdown-item" href="#">English</a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+@section('content')
+<div class="container-fluid py-2">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0" style="color: #0056b3; font-weight: 600;">Quản lý Bác Sĩ</h4>
+            <p class="text-secondary mb-0">Thêm mới, cập nhật thông tin và lịch làm việc của bác sĩ.</p>
         </div>
-    </header>
-
-
-
+    </div>
 
     @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
+    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     @endif
 
     @if ($errors->any())
-    <div class="alert alert-danger">
-        <ul class="mb-0 text-start">
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> Đã xảy ra lỗi:
+        <ul class="mb-0 mt-2">
             @foreach ($errors->all() as $error)
             <li>{{ $error }}</li>
             @endforeach
         </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     @endif
 
-
-
-    <div class="container py-4">
-        <h1 class="text-center mb-4">Quản lý Bác Sĩ</h1>
-
-        <!-- Tìm kiếm bác sĩ -->
-        <form method="GET" action="{{ route('admin.doctors.index') }}" class="mb-4">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Tìm kiếm bác sĩ..." value="{{ $search ?? '' }}">
-                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
-            </div>
-        </form>
-
-        <!-- Form thêm hoặc sửa bác sĩ -->
-        @if(isset($editDoctor))
-        <h3 class="mb-3">Sửa Bác Sĩ</h3>
-        <form method="POST" action="{{ route('admin.doctors.update', $editDoctor->id) }}" enctype="multipart/form-data" class="mb-4">
-            @csrf
-            <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-3">
-                <div class="col">
-                    <input type="text" name="name" class="form-control" value="{{ old('name', $editDoctor->name) }}" placeholder="Tên bác sĩ" required>
+    <div class="row g-4">
+        <!-- Form Area (Left) -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card border shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">
+                        @if(isset($editDoctor)) <i class="bi bi-pencil-square me-2"></i>Sửa thông tin bác sĩ @else <i class="bi bi-plus-circle me-2"></i>Thêm bác sĩ mới @endif
+                    </h6>
                 </div>
-                <div class="col">
-                    <input type="email" name="email" class="form-control" value="{{ old('email', $editDoctor->email) }}" placeholder="Email" required>
-                </div>
-                <div class="col">
-                    <input type="text" name="specialty" class="form-control" value="{{ old('specialty', $editDoctor->specialty) }}" placeholder="Chuyên môn" required>
-                </div>
-                <div class="col">
-                    <input type="text" name="phone" class="form-control" value="{{ old('phone', $editDoctor->phone) }}" placeholder="Số điện thoại" required>
-                </div>
-                <div class="col">
-                    <input type="text" name="bio" class="form-control" value="{{ old('bio', $editDoctor->bio) }}" placeholder="Tiểu sử">
-                </div>
-                <div class="col">
-                    <input type="password" name="password" class="form-control" placeholder="Mật khẩu mới (Để trống nếu không muốn thay đổi)">
-                </div>
-                <div class="col">
-                    <input type="file" name="image" class="form-control">
-                    @if($editDoctor->image)
-                    <img src="{{ asset($editDoctor->image) }}" alt="Ảnh bác sĩ" class="img-thumbnail mt-2 img-fluid" style="max-width: 100px; height: auto; object-fit: cover;">
-                    @endif
-                </div>
-                <div id="schedule" class='col'>
-                    <label>Lịch làm việc:</label>
-                    @php
-                    $workingHours = $editDoctor->working_hours ?? [];
-                    @endphp
-                    <button type="button" onclick="addScheduleRow()" style='margin-left: 189px;'>+ Thêm</button>
-                    @if(is_array($workingHours) || is_object($workingHours))
-                    @foreach ($workingHours as $index => $schedule)
-                    <div class="schedule-row">
-
-                        <select name="working_hours[{{ $index }}][day]" style='margin-left:98px; margin-top:5px'>
-                            <option value="Monday" {{ $schedule['day'] == 'Monday' ? 'selected' : '' }}>Thứ Hai</option>
-                            <option value="Tuesday" {{ $schedule['day'] == 'Tuesday' ? 'selected' : '' }}>Thứ Ba
-                            </option>
-                            <option value="Wednesday" {{ $schedule['day'] == 'Wednesday' ? 'selected' : '' }}>Thứ Tư
-                            </option>
-                            <option value="Thursday" {{ $schedule['day'] == 'Thursday' ? 'selected' : '' }}>Thứ Năm
-                            </option>
-                            <option value="Friday" {{ $schedule['day'] == 'Friday' ? 'selected' : '' }}>Thứ Sáu</option>
-                            <option value="Saturday" {{ $schedule['day'] == 'Saturday' ? 'selected' : '' }}>Thứ Bảy
-                            </option>
-                            <option value="Sunday" {{ $schedule['day'] == 'Sunday' ? 'selected' : '' }}>Chủ Nhật
-                            </option>
-                        </select>
-
-                        <select name="working_hours[{{ $index }}][shift]">
-                            <option value="morning" {{ $schedule['shift'] == 'morning' ? 'selected' : '' }}>08:00 -
-                                12:00</option>
-                            <option value="afternoon" {{ $schedule['shift'] == 'afternoon' ? 'selected' : '' }}>14:00 -
-                                18:00</option>
-                        </select>
-
-                        <button type="button" style=' margin-top:-5px' class="btn btn-danger btn-sm" onclick="removeScheduleRow(this)">Xóa</button>
-                    </div>
-                    @endforeach
-                    @else
-                    <p>Không có dữ liệu lịch làm việc.</p>
-                    @endif
-
-                </div>
-                <div class="col text-center">
-                    <button type="submit" class="btn btn-warning w-100">Lưu Thay Đổi</button>
-                </div>
-            </div>
-        </form>
-        @else
-        <h3 class="mb-3">Thêm Bác Sĩ</h3>
-        <form method="POST" action="{{ route('admin.doctors.store') }}" enctype="multipart/form-data" class="mb-4">
-            @csrf
-            <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-3">
-                <div class="col">
-                    <input type="text" name="name" class="form-control" value="{{ old('name') }}" placeholder="Tên bác sĩ" required>
-                </div>
-                <div class="col">
-                    <input type="email" name="email" class="form-control" value="{{ old('email') }}" placeholder="Email" required>
-                </div>
-                <div class="col">
-                    <input type="password" name="password" class="form-control" placeholder="Mật khẩu" required>
-                </div>
-                <div class="col">
-                    <input type="text" name="specialty" class="form-control" value="{{ old('specialty') }}" placeholder="Chuyên môn" required>
-                </div>
-                <div class="col">
-                    <input type="text" name="phone" class="form-control" value="{{ old('phone') }}" placeholder="Số điện thoại" required>
-                </div>
-                <div class="col">
-                    <input type="text" name="bio" class="form-control" value="{{ old('bio') }}" placeholder="Mô tả">
-                </div>
-                <div class="col">
-                    <input type="file" name="image" class="form-control">
-                </div>
-                <div id="schedule" class='col'>
-                    <div class="schedule-row">
-                        <label>Lịch làm việc: </label>
-                        <select name="working_hours[0][day]">
-                            <option value="Monday">Thứ Hai</option>
-                            <option value="Tuesday">Thứ Ba</option>
-                            <option value="Wednesday">Thứ Tư</option>
-                            <option value="Thursday">Thứ Năm</option>
-                            <option value="Friday">Thứ Sáu</option>
-                            <option value="Saturday">Thứ Bảy</option>
-                            <option value="Sunday">Chủ Nhật</option>
-                        </select>
-
-
-                        <select name="working_hours[0][shift]">
-                            <option value="morning">08:00 - 12:00</option>
-                            <option value="afternoon">14:00 - 18:00</option>
-                        </select>
-                        <button type="button" onclick="addScheduleRow()">+ Thêm</button>
-                    </div>
-
-                </div>
-                <div class="col text-center">
-                    <button type="submit" class="btn btn-success w-100">Thêm Bác Sĩ</button>
-                </div>
-            </div>
-        </form>
-        @endif
-
-        <!-- Danh sách bác sĩ -->
-        <div class="table-responsive">
-            <table class="table table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Tên</th>
-                        <th>Email</th>
-                        <th>Chuyên môn</th>
-                        <th>Số điện thoại</th>
-                        <th>Ảnh</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($doctors as $doctor)
-                    <tr>
-                        <td>{{ $loop->iteration }}</td>
-                        <td>{{ $doctor->name }}</td>
-                        <td>{{ $doctor->email }}</td>
-                        <td>{{ $doctor->specialty }}</td>
-                        <td>{{ $doctor->phone }}</td>
-                        <td>
-                            @if($doctor->image)
-                            <img src="{{ asset($doctor->image) }}" alt="Ảnh bác sĩ" class="img-thumbnail img-fluid" style="max-width: 50px; height: auto; object-fit: cover;">
-                            @else
-                            <span>Không có ảnh</span>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ isset($editDoctor) ? route('admin.doctors.update', $editDoctor->id) : route('admin.doctors.store') }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Họ và Tên</label>
+                            <input type="text" name="name" class="form-control" value="{{ old('name', $editDoctor?->user?->name ?? '') }}" placeholder="Nhập tên bác sĩ" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ old('email', $editDoctor?->user?->email ?? '') }}" placeholder="Nhập email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Chuyên Khoa</label>
+                            <input type="text" name="specialty" class="form-control" value="{{ old('specialty', $editDoctor->specialty ?? '') }}" placeholder="Ví dụ: Da liễu, Tim mạch..." required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Số Điện Thoại</label>
+                            <input type="text" name="phone" class="form-control" value="{{ old('phone', $editDoctor?->user?->phone ?? '') }}" placeholder="Nhập số điện thoại" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Tiểu sử / Mô tả</label>
+                            <textarea name="bio" class="form-control" rows="3" placeholder="Nhập tiểu sử ngắn">{{ old('bio', $editDoctor->bio ?? '') }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Mật khẩu {{ isset($editDoctor) ? '(Để trống nếu không đổi)' : '' }}</label>
+                            <input type="password" name="password" class="form-control" placeholder="Mật khẩu" {{ !isset($editDoctor) ? 'required' : '' }}>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary" style="font-size: 14px; font-weight: 500;">Ảnh đại diện</label>
+                            <input type="file" name="image" class="form-control">
+                            @if(isset($editDoctor) && $editDoctor->image)
+                            <div class="mt-2">
+                                <img src="{{ asset($editDoctor->image) }}" alt="Ảnh" class="img-thumbnail rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                            </div>
                             @endif
-                        </td>
-                        <td class="text-nowrap">
-                            <a href="{{ route('admin.doctors.index', ['edit_id' => $doctor->id]) }}" class="btn btn-warning btn-sm">Sửa</a>
-                            <form method="POST" action="{{ route('admin.doctors.destroy', $doctor->id) }}" class="d-inline-block">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn xóa bác sĩ này?')">Xóa</button>
-                            </form>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                        </div>
+                        
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label text-secondary mb-0" style="font-size: 14px; font-weight: 500;">Lịch làm việc</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="addScheduleRow()">
+                                <i class="bi bi-plus"></i> Thêm ca
+                            </button>
+                        </div>
+
+                        <div id="schedule" class="d-flex flex-column gap-2">
+                            @php
+                            $workingHours = $editDoctor->working_hours ?? (old('working_hours') ?? [['day' => 'Monday', 'shift' => 'morning']]);
+                            if (is_string($workingHours)) {
+                                $workingHours = json_decode($workingHours, true);
+                            }
+                            if (empty($workingHours)) {
+                                $workingHours = [['day' => 'Monday', 'shift' => 'morning']];
+                            }
+                            @endphp
+
+                            @foreach ($workingHours as $index => $schedule)
+                            <div class="schedule-row d-flex gap-2 align-items-center bg-light p-2 rounded">
+                                <select name="working_hours[{{ $index }}][day]" class="form-select form-select-sm">
+                                    <option value="Monday" {{ ($schedule['day'] ?? '') == 'Monday' ? 'selected' : '' }}>Thứ Hai</option>
+                                    <option value="Tuesday" {{ ($schedule['day'] ?? '') == 'Tuesday' ? 'selected' : '' }}>Thứ Ba</option>
+                                    <option value="Wednesday" {{ ($schedule['day'] ?? '') == 'Wednesday' ? 'selected' : '' }}>Thứ Tư</option>
+                                    <option value="Thursday" {{ ($schedule['day'] ?? '') == 'Thursday' ? 'selected' : '' }}>Thứ Năm</option>
+                                    <option value="Friday" {{ ($schedule['day'] ?? '') == 'Friday' ? 'selected' : '' }}>Thứ Sáu</option>
+                                    <option value="Saturday" {{ ($schedule['day'] ?? '') == 'Saturday' ? 'selected' : '' }}>Thứ Bảy</option>
+                                    <option value="Sunday" {{ ($schedule['day'] ?? '') == 'Sunday' ? 'selected' : '' }}>Chủ Nhật</option>
+                                </select>
+                                <select name="working_hours[{{ $index }}][shift]" class="form-select form-select-sm">
+                                    <option value="morning" {{ ($schedule['shift'] ?? '') == 'morning' ? 'selected' : '' }}>08:00 - 12:00</option>
+                                    <option value="afternoon" {{ ($schedule['shift'] ?? '') == 'afternoon' ? 'selected' : '' }}>14:00 - 18:00</option>
+                                </select>
+                                @if(count($workingHours) > 1 || $index > 0)
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeScheduleRow(this)"><i class="bi bi-trash"></i></button>
+                                @endif
+                            </div>
+                            @endforeach
+                        </div>
+
+                        <div class="mt-4">
+                            @if(isset($editDoctor))
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary w-100 py-2">Lưu Thay Đổi</button>
+                                <a href="{{ route('admin.doctors.index') }}" class="btn btn-light w-100 py-2 border">Hủy</a>
+                            </div>
+                            @else
+                            <button type="submit" class="btn btn-primary w-100 py-2">Thêm Bác Sĩ Mới</button>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Area (Right) -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card border shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">Danh sách Bác sĩ ({{ count($doctors) }})</h6>
+                    
+                    <form method="GET" action="{{ route('admin.doctors.index') }}" class="d-flex" style="width: 280px;">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="search" class="form-control bg-light" placeholder="Tìm tên, chuyên môn..." value="{{ $search ?? '' }}">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light text-secondary" style="font-size: 13px; text-transform: uppercase;">
+                                <tr>
+                                    <th class="ps-4">Thông tin bác sĩ</th>
+                                    <th>Liên hệ</th>
+                                    <th>Chuyên môn</th>
+                                    <th class="text-end pe-4">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody style="border-top: 0;">
+                                @forelse($doctors as $doctor)
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center gap-3">
+                                            @if($doctor->image)
+                                            <img src="{{ asset($doctor->image) }}" alt="{{ optional($doctor->user)->name }}" class="rounded-circle object-fit-cover shadow-sm border" style="width: 44px; height: 44px;">
+                                            @else
+                                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold shadow-sm border" style="width: 44px; height: 44px;">
+                                                {{ substr(optional($doctor->user)->name, 0, 1) }}
+                                            </div>
+                                            @endif
+                                            <div>
+                                                <h6 class="mb-0 fw-bold text-dark">{{ optional($doctor->user)->name }}</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column text-secondary" style="font-size: 13px;">
+                                            <span class="mb-1"><i class="bi bi-telephone me-2 text-muted"></i>{{ optional($doctor->user)->phone }}</span>
+                                            <span><i class="bi bi-envelope me-2 text-muted"></i>{{ optional($doctor->user)->email }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border px-2 py-1" style="font-weight: 500;">{{ $doctor->specialty }}</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group btn-group-sm shadow-sm">
+                                            <a href="{{ route('admin.doctors.index', ['edit_id' => $doctor->id]) }}" class="btn btn-light border text-primary" title="Sửa thông tin">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <form method="POST" action="{{ route('admin.doctors.destroy', $doctor->id) }}" class="d-inline-block m-0">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-light border text-danger" title="Xóa" onclick="return confirm('Bạn có chắc chắn muốn xóa bác sĩ {{ optional($doctor->user)->name }} không?')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-secondary">
+                                        <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                                        Chưa có bác sĩ nào hoặc không tìm thấy kết quả.
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+</div>
+@endsection
 
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <!-- Cột 1: Thông tin bệnh viện -->
-                <div class="col-md-3 footer-col">
-                    <a href="#" class="footer-logo">
-                        <img src="{{ asset('img/phenikaamec.webp') }}" alt="PHENIKAA MEC" class="img-fluid">
-                    </a>
-                    <p><strong>Bệnh viện Đại Học Phenikaa</strong></p>
-                    <p>📍 Đường Kiều Mai, P. Phương Canh, Nam Từ Liêm, Hà Nội</p>
-                    <p>📜 Giấy phép hoạt động số 386/BYT</p>
-                    <p>📞 Hotline: <a href="tel:1900886648">1900.88.66.48</a> - <a href="tel:02422226688">02422226688</a></p>
-                    <p>📧 Email: <a href="mailto:support@phenikaamec.com">support@phenikaamec.com</a></p>
-                </div>
-                <!-- Cột 2: Hệ thống phòng khám -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">HỆ THỐNG PHÒNG KHÁM</h5>
-                    <p><strong>Phòng Khám Đa Khoa - Hoàng Ngân</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:02422226699">02422226699</a></p>
-                    <p>⏰ Giờ làm việc: 7h30 - 17h00</p>
-                    <p><strong>Phòng Khám Răng Hàm Mặt</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:0978625499">0978625499</a></p>
-                    <p>⏰ Giờ làm việc: 8h00 - 18h00</p>
-                </div>
-                <!-- Cột 3: Liên kết nhanh -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">LIÊN KẾT NHANH</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Chương trình Bác sĩ hợp tác</a></li>
-                        <li><a href="#">Chuyên khoa</a></li>
-                        <li><a href="#">Dịch vụ</a></li>
-                        <li><a href="#">Bệnh học</a></li>
-                    </ul>
-                </div>
-                <!-- Cột 4: Ứng dụng & Mạng xã hội -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">TẢI APP PHENIKAA MEC</h5>
-                    <div class="qr-box">
-                        <a href="#"><img src="{{ asset('img/qr.png') }}" alt="QR Code" class="img-fluid"></a>
-                    </div>
-                    <div class="social-icons">
-                        <a href="#"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook" class="img-fluid"></a>
-                        <a href="#"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube" class="img-fluid"></a>
-                        <a href="#"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok" class="img-fluid"></a>
-                    </div>
-                </div>
-            </div>
-            <hr class="footer-divider">
-            <div class="text-center">
-                <p>&copy; {{ date('Y') }} thuộc về Bệnh viện Đại học Phenikaa</p>
-                <p><a href="#">Điều khoản sử dụng</a> | <a href="#">Chính sách bảo mật</a></p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+@push('scripts')
 <script>
     function addScheduleRow() {
-        let index = document.querySelectorAll('.schedule-row').length;
-        let scheduleDiv = document.createElement('div');
-        scheduleDiv.classList.add('schedule-row');
-
-        scheduleDiv.innerHTML = `
-        <div style='margin-left:98px;margin-top:5px'>
-        <select name="working_hours[${index}][day]" >
-            <option value="Monday">Thứ Hai</option>
-            <option value="Tuesday">Thứ Ba</option>
-            <option value="Wednesday">Thứ Tư</option>
-            <option value="Thursday">Thứ Năm</option>
-            <option value="Friday">Thứ Sáu</option>
-            <option value="Saturday">Thứ Bảy</option>
-            <option value="Sunday">Chủ Nhật</option>
-        </select>
-        <select name="working_hours[${index}][shift]">
-            <option value="morning">08:00 - 12:00</option>
-            <option value="afternoon">14:00 - 18:00</option>
-        </select>
-        <button type="button" class="btn btn-danger btn-sm" style="margin-top:-5px" onclick="removeScheduleRow(this)">Xóa</button>
-        </div>
-    `;
-
-        document.getElementById('schedule').appendChild(scheduleDiv);
+        let container = document.getElementById('schedule');
+        let index = container.querySelectorAll('.schedule-row').length;
+        
+        let row = document.createElement('div');
+        row.className = 'schedule-row d-flex gap-2 align-items-center bg-light p-2 rounded mt-2';
+        
+        row.innerHTML = `
+            <select name="working_hours[${index}][day]" class="form-select form-select-sm">
+                <option value="Monday">Thứ Hai</option>
+                <option value="Tuesday">Thứ Ba</option>
+                <option value="Wednesday">Thứ Tư</option>
+                <option value="Thursday">Thứ Năm</option>
+                <option value="Friday">Thứ Sáu</option>
+                <option value="Saturday">Thứ Bảy</option>
+                <option value="Sunday">Chủ Nhật</option>
+            </select>
+            <select name="working_hours[${index}][shift]" class="form-select form-select-sm">
+                <option value="morning">08:00 - 12:00</option>
+                <option value="afternoon">14:00 - 18:00</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeScheduleRow(this)"><i class="bi bi-trash"></i></button>
+        `;
+        
+        container.appendChild(row);
     }
 
     function removeScheduleRow(button) {
-        button.parentElement.remove();
+        button.closest('.schedule-row').remove();
     }
 </script>
-
-</html>
+@endpush

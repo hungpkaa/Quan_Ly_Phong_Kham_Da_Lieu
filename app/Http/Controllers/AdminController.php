@@ -13,6 +13,61 @@ use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
+    public function dashboard(Request $request)
+    {
+        $filter = $request->query('filter', '7days');
+
+        $totalPatients = \App\Models\User::where('role', 'patient')->count();
+        $totalDoctors = \App\Models\Doctor::count();
+        $appointmentsToday = \App\Models\Appointment::whereDate('appointment_date', \Carbon\Carbon::today())->count();
+        $revenueMonth = \App\Models\Invoice::whereMonth('created_at', \Carbon\Carbon::now()->month)
+                                            ->whereYear('created_at', \Carbon\Carbon::now()->year)
+                                            ->sum('total_amount');
+        
+        if ($revenueMonth >= 1000000) {
+            $revenueFormatted = round($revenueMonth / 1000000, 1) . 'M';
+        } elseif ($revenueMonth >= 1000) {
+            $revenueFormatted = round($revenueMonth / 1000, 1) . 'K';
+        } else {
+            $revenueFormatted = $revenueMonth;
+        }
+
+        $recentPatients = \App\Models\User::where('role', 'patient')->latest()->take(5)->get();
+        $recentAppointments = \App\Models\Appointment::with('doctor')->latest()->take(5)->get();
+        $pendingAppointmentsCount = \App\Models\Appointment::where('status', 'pending')->count();
+
+        // Chart Data logic based on filter
+        if ($filter == 'today') {
+            $appointmentsChartData = \App\Models\Appointment::selectRaw('DATE(appointment_date) as date, count(*) as count')
+                ->whereDate('appointment_date', \Carbon\Carbon::today())
+                ->groupBy('date')->orderBy('date')->get();
+        } elseif ($filter == 'this_month') {
+            $appointmentsChartData = \App\Models\Appointment::selectRaw('DATE(appointment_date) as date, count(*) as count')
+                ->whereMonth('appointment_date', \Carbon\Carbon::now()->month)
+                ->whereYear('appointment_date', \Carbon\Carbon::now()->year)
+                ->groupBy('date')->orderBy('date')->get();
+        } else {
+            // default 7 days
+            $appointmentsChartData = \App\Models\Appointment::selectRaw('DATE(appointment_date) as date, count(*) as count')
+                ->whereDate('appointment_date', '>=', \Carbon\Carbon::today()->subDays(6))
+                ->groupBy('date')->orderBy('date')->get();
+        }
+
+        // Chart Data: Doanh thu 6 tháng qua
+        $revenueChartData = \App\Models\Invoice::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, sum(total_amount) as total')
+            ->whereDate('created_at', '>=', \Carbon\Carbon::now()->subMonths(5)->startOfMonth())
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'ASC')
+            ->orderBy('month', 'ASC')
+            ->get();
+
+        return view('role.admin', compact(
+            'totalPatients', 'totalDoctors', 'appointmentsToday', 'revenueFormatted', 
+            'recentPatients', 'recentAppointments', 'pendingAppointmentsCount',
+            'appointmentsChartData', 'revenueChartData', 'filter'
+        ));
+    }
+
     public function showDoctors(Request $request)
     {
         $search = $request->input('search');
@@ -24,10 +79,11 @@ class AdminController extends Controller
         }
 
         // Lọc danh sách bác sĩ theo từ khóa tìm kiếm
-        $doctors = Doctor::when($search, function ($query, $search) {
-            return $query->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('specialty', 'like', "%{$search}%");
+        $doctors = Doctor::with('user')->when($search, function ($query, $search) {
+            return $query->whereHas('user', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            })->orWhere('specialty', 'like', "%{$search}%");
         })->get();
 
         return view('role.adminfixdoctors', compact('doctors', 'search', 'editDoctor'));
@@ -58,25 +114,22 @@ class AdminController extends Controller
             $filePath = null;
         }
 
-        // Thêm bác sĩ vào bảng doctors
+        // Thêm tài khoản vào bảng users
         DB::transaction(function () use ($request, $filePath) {
-            Doctor::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'specialty' => $request->specialty,
-            'phone' => $request->phone,
-            'bio' => $request->bio,
-            'image' => $filePath,
-            'working_hours' => $request->working_hours,
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'password' => Hash::make($request->password),
+                'role' => 'admindoctor',
             ]);
 
-        // Thêm tài khoản vào bảng users
-            User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'admindoctor',
+            Doctor::create([
+                'user_id' => $user->id,
+                'specialty' => $request->specialty,
+                'bio' => $request->bio,
+                'image' => $filePath,
+                'working_hours' => $request->working_hours,
             ]);
         });
 
@@ -91,12 +144,12 @@ class AdminController extends Controller
     {
         // Lấy thông tin bác sĩ cần sửa
         $doctor = Doctor::findOrFail($id);
-        $oldEmail = $doctor->email;
+        $user = $doctor->user;
 
         // Validate dữ liệu từ form
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:doctors,email,' . $doctor->id,
+            'email' => 'required|email|unique:users,email,' . ($user ? $user->id : ''),
             'specialty' => 'required|string',
             'phone' => 'required|string',
             'bio' => 'nullable|string',
@@ -119,33 +172,28 @@ class AdminController extends Controller
 
 
         $updateData = [
-            'name' => $request->name,
-            'email' => $request->email,
             'specialty' => $request->specialty,
-            'phone' => $request->phone,
             'bio' => $request->bio,
             'working_hours' => $request->filled('working_hours') ? $request->working_hours : null,
         ];
-
-        // Nếu có nhập mật khẩu mới, cập nhật mật khẩu
-        if ($request->filled('password')) {
-            $updateData['password'] = Hash::make($request->password);
-        }
 
         // Cập nhật bác sĩ
         $doctor->update($updateData);
 
         // Nếu có bảng `users` liên kết với bác sĩ, cập nhật cả tài khoản user
-        $userUpdateData = [
-            'name' => $request->name,
-            'email' => $request->email,
-        ];
+        if ($user) {
+            $userUpdateData = [
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+            ];
 
-        if ($request->filled('password')) {
-            $userUpdateData['password'] = Hash::make($request->password);
+            if ($request->filled('password')) {
+                $userUpdateData['password'] = Hash::make($request->password);
+            }
+
+            $user->update($userUpdateData);
         }
-
-        User::where('email', $oldEmail)->update($userUpdateData);
 
         // Chuyển hướng về danh sách bác sĩ kèm thông báo
         return redirect()->route('admin.doctors.index')->with('success', 'Thông tin bác sĩ đã được cập nhật.');
@@ -157,8 +205,8 @@ class AdminController extends Controller
         // Tìm bác sĩ với ID
         $doctor = Doctor::findOrFail($id);
 
-        // Tìm user liên kết với bác sĩ dựa trên email
-        $user = User::where('email', $doctor->email)->first();
+        // Tìm user liên kết với bác sĩ
+        $user = $doctor->user;
 
         // Xóa bác sĩ trong bảng doctors
         $doctor->delete();
@@ -172,21 +220,22 @@ class AdminController extends Controller
         return redirect()->route('admin.doctors.index')->with('success', 'Bác sĩ và tài khoản liên kết đã được xóa thành công.');
     }
 
-    // 📌 Hiển thị danh sách bệnh nhân đã đặt lịch
+    // 📌 Hiển thị danh sách bệnh nhân
     public function showAllPatients(Request $request)
     {
         $search = $request->input('search');
 
-        $patients = Appointment::with(['patient', 'doctor'])
+        $patients = User::where('role', 'patient')
+            ->withCount(['appointments', 'medicalRecords'])
             ->when($search, function ($query, $search) {
-                return $query->whereHas('patient', function ($q) use ($search) {
+                return $query->where(function($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
-            ->orderBy('appointment_date', 'ASC')
-            ->get();
+            ->latest()
+            ->paginate(15);
 
         return view('role.adminpatients', compact('patients', 'search'));
     }
@@ -194,8 +243,15 @@ class AdminController extends Controller
 
     public function getDoctorsBySpecialty(Request $request)
     {
-        $doctors = Doctor::where('specialty', $request->specialty)->get();
-        return response()->json($doctors);
+        $doctors = Doctor::with('user')->where('specialty', $request->specialty)->get();
+        // Since we are returning json, we probably want to format it so frontend easily gets name
+        $formattedDoctors = $doctors->map(function($doc) {
+            return [
+                'id' => $doc->id,
+                'name' => $doc->user ? $doc->user->name : 'Unknown',
+            ];
+        });
+        return response()->json($formattedDoctors);
     }
 
 
@@ -217,11 +273,13 @@ class AdminController extends Controller
         $doctors = Doctor::all();
 
         // Truy vấn lịch hẹn với tìm kiếm
-        $appointments = Appointment::with(['doctor'])
+        $appointments = Appointment::with(['doctor', 'user'])
             ->when($search, function ($query, $search) {
-                return $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                return $query->whereHas('user', function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%");
+                });
             })
             ->orderBy('appointment_date', 'ASC')
             ->get();
@@ -259,10 +317,10 @@ class AdminController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:appointments,email',
+            'email' => 'required|email',
             'phone' => 'required|string',
             'age' => 'required|integer',
-            'cccd' => 'required|string|unique:appointments,cccd',
+            'cccd' => 'required|string',
             'appointment_date' => 'required|date',
             'shift' => 'required|in:morning,afternoon',
             'description' => 'nullable|string',
@@ -276,16 +334,24 @@ class AdminController extends Controller
             return back()->with('error', 'Bác sĩ không tồn tại');
         }
 
-        // Debug kiểm tra dữ liệu nhận được
-        // dd($request->all());
+        $user = \App\Models\User::firstOrCreate(
+            ['phone' => $request->phone],
+            [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'role' => 'patient'
+            ]
+        );
+
+        $user->update([
+            'age' => $request->age,
+            'cccd' => $request->cccd,
+        ]);
 
         // Tạo lịch hẹn mới
         Appointment::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'age' => $request->age,
-            'cccd' => $request->cccd,
+            'user_id' => $user->id,
             'appointment_date' => $request->appointment_date,
             'shift' => $request->shift,
             'description' => $request->description,
@@ -318,7 +384,23 @@ class AdminController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $appointment->update($request->all());
+        if ($appointment->user) {
+            $appointment->user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'age' => $request->age,
+                'cccd' => $request->cccd,
+            ]);
+        }
+
+        $appointment->update([
+            'doctor_id' => $request->doctor_id,
+            'appointment_date' => $request->appointment_date,
+            'shift' => $request->shift,
+            'description' => $request->description,
+            'specialty' => $request->specialty,
+        ]);
 
         return redirect()->route('admin.appointments.index')->with('success', 'Lịch hẹn đã được cập nhật.');
     }
@@ -384,7 +466,7 @@ class AdminController extends Controller
     public function showshift(Request $request)
     {
         // Lấy tất cả bác sĩ
-        $doctors = Doctor::all(['id', 'name', 'specialty', 'phone', 'image', 'working_hours']);
+        $doctors = Doctor::with('user')->get();
 
         // Nhóm theo chuyên môn để hiển thị
         $specialtyGroups = $doctors->groupBy('specialty');

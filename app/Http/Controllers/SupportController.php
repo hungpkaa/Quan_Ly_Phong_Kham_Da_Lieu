@@ -42,6 +42,6 @@ class SupportController extends Controller
         $support = Support::findOrFail($id);
         $support->delete();
 
-        return redirect()->route('role.managesupport')->with('success', 'Đã xóa yêu cầu hỗ trợ.');
+        return redirect()->route('admin.supports.index')->with('success', 'Đã xóa yêu cầu hỗ trợ.');
     }
 }

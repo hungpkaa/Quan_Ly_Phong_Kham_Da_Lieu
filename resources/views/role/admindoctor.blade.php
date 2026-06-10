@@ -1,365 +1,143 @@
-<!DOCTYPE html>
-<html lang="en">
-@section('title', 'Admin Dashboard')
+@extends('layouts.admin_layout')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+@section('title', 'Bảng Điều Khiển - Bác Sĩ')
 
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-</head>
-
-<body>
-    <header>
-        <div class="py-3" style="background-color: #e0f7fa; border-bottom: 1px solid #ccc;">
-            <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- Logo -->
-                <a href="{{ url('/admindoctor/dashboard') }}" class="d-flex align-items-center">
-                    <img src="/img/logo.webp" alt="Logo" style="height: 50px;">
-                </a>
-
-                <!-- Search -->
-                <div class="d-flex align-items-center" style="max-width: 400px; width: 100%;">
-                    <input type="text" class="form-control" placeholder="Tìm kiếm..." style="border-radius: 25px;">
-                    <button class="btn btn-primary ms-2" style="border-radius: 25px;">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-
-                <!-- Actions -->
-                <a href="/appointments/create" class="btn btn-primary btn-sm rounded-pill px-3"
-                    style="background-color: #007bff; border-color: #007bff;">Đặt lịch khám</a>
-                <a href="#" class="btn btn-info btn-sm rounded-pill px-3" style="color: white;">1900 886648</a>
-                <a href="#" class="btn btn-warning btn-sm rounded-pill px-3" style="color: white;">Hướng dẫn khách
-                    hàng</a>
-
-                <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="d-inline-block">
-                    @csrf
-                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">Đăng xuất</button>
-                </form>
-
-                <!-- Language Dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-light btn-sm rounded-circle dropdown-toggle" id="languageDropdown"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="/img/vietnam.png" alt="VN" style="height: 20px;"> <!-- Icon cờ -->
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item" href="#">Vietnamese</a></li>
-                        <li><a class="dropdown-item" href="#">English</a></li>
-                    </ul>
-                </div>
-            </div>
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <!-- Header -->
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h2 class="mb-2" style="font-family: 'Poppins', sans-serif; color: #0056b3; font-weight: 700;">
+                Chào mừng Bác sĩ, {{ optional($doctor->user)->name }}!
+            </h2>
+            <p class="text-secondary">Chúc bạn một ngày làm việc hiệu quả và mang lại nhiều sức khỏe cho bệnh nhân.</p>
         </div>
-    </header>
+    </div>
 
-
-    <div class="content">
-        @yield('content')
-        <div class="container py-5">
-            <div class="row">
-                <div class="col-md-12 text-center">
-                    <h1 class="mb-4"
-                        style="font-family: 'Poppins', sans-serif; font-size: 36px; color: #0056b3; font-weight: 700;">
-                        Welcome!
-                    </h1>
+    <div class="row justify-content-center mb-5">
+        <!-- Thông tin bác sĩ -->
+        <div class="col-xl-5 col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden">
+                <div class="bg-primary bg-opacity-10 py-4 d-flex justify-content-center border-bottom border-primary border-opacity-25">
+                    <!-- Hình ảnh bác sĩ với viền -->
+                    <div class="p-1 bg-white rounded-circle shadow-sm" style="border: 3px solid #0056b3;">
+                        <img src="{{ asset($doctor->image) }}" class="rounded-circle object-fit-cover"
+                            style="width: 130px; height: 130px;" alt="{{ optional($doctor->user)->name }}">
+                    </div>
                 </div>
-            </div>
+                
+                <div class="card-body p-4">
+                    <h4 class="text-center mb-4" style="font-weight: 700; color: #0056b3;">
+                        {{ optional($doctor->user)->name }}
+                    </h4>
 
-            <div class="row justify-content-center">
-                <!-- Thông tin bác sĩ -->
-                <div class="col-lg-5">
-                    <div class="card border rounded shadow-sm">
-                        <div class="card-body text-center p-4">
-                            <!-- Hình ảnh bác sĩ với viền xanh đậm -->
-                            <div
-                                style="border: 3px solid #0056b3; border-radius: 50%; padding: 5px; display: inline-block;">
-                                <img src="{{ asset($doctor->image) }}" class="rounded-circle"
-                                    style="width: 130px; height: 130px; object-fit: cover;" alt="{{ $doctor->name }}">
+                    <!-- Thông tin liên hệ -->
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        <div class="d-flex align-items-center bg-light p-3 rounded-3 border">
+                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 40px; height: 40px; min-width: 40px;">
+                                <i class="bi bi-award fs-5"></i>
                             </div>
-                            <h3 class="mt-2" style="font-size: 22px; font-weight: 700; color: #0056b3;">
-                                {{ $doctor->name }}
-                            </h3>
+                            <div>
+                                <div class="small text-secondary fw-medium">Chuyên khoa</div>
+                                <div class="fw-semibold text-dark">{{ $doctor->specialty }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center bg-light p-3 rounded-3 border">
+                            <div class="bg-white text-info rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 40px; height: 40px; min-width: 40px;">
+                                <i class="bi bi-envelope fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="small text-secondary fw-medium">Email</div>
+                                <div class="fw-semibold text-dark">{{ optional($doctor->user)->email }}</div>
+                            </div>
+                        </div>
 
-                            <!-- Thông tin bác sĩ (Sát trái/phải) -->
-                            <table class="table table-sm mt-3">
-                                <tbody>
-                                    <tr>
-                                        <th class="text-start">Chuyên khoa:</th>
-                                        <td class="text-end">{{ $doctor->specialty }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th class="text-start">Email:</th>
-                                        <td class="text-end">{{ $doctor->email }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th class="text-start">Điện thoại:</th>
-                                        <td class="text-end">{{ $doctor->phone }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="d-flex align-items-center bg-light p-3 rounded-3 border">
+                            <div class="bg-white text-success rounded-circle d-flex align-items-center justify-content-center shadow-sm me-3" style="width: 40px; height: 40px; min-width: 40px;">
+                                <i class="bi bi-telephone fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="small text-secondary fw-medium">Điện thoại</div>
+                                <div class="fw-semibold text-dark">{{ optional($doctor->user)->phone }}</div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <!-- Giờ làm việc -->
-                            <h5 class="mt-3 mb-2">Giờ làm việc</h5>
-                            <table class="table table-sm text-center border">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Ngày</th>
-                                        <th>Ca làm việc</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php
-                                        $workingHours = is_array($doctor->working_hours) ? $doctor->working_hours :
-                                            json_decode($doctor->working_hours, true) ?? [];
-                                    @endphp
-                                    @foreach($workingHours as $schedule)
-                                                                    <tr>
-                                                                        <td>
-                                                                            {{ __('Thứ') }}
-                                                                            {{ $schedule['day'] == 'Monday' ? 'Hai' :
+                    <!-- Giờ làm việc -->
+                    <h6 class="fw-semibold text-dark mb-3"><i class="bi bi-clock-history me-2 text-warning"></i>Giờ làm việc cố định</h6>
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-sm table-hover text-center mb-0 align-middle">
+                            <thead class="table-light text-secondary small">
+                                <tr>
+                                    <th class="py-2 border-bottom-0">Ngày làm việc</th>
+                                    <th class="py-2 border-bottom-0">Ca làm việc</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php
+                                    $workingHours = is_array($doctor->working_hours) ? $doctor->working_hours :
+                                        json_decode($doctor->working_hours, true) ?? [];
+                                @endphp
+                                @forelse($workingHours as $schedule)
+                                <tr>
+                                    <td class="py-2 fw-medium text-dark">
+                                        {{ __('Thứ') }}
+                                        {{ $schedule['day'] == 'Monday' ? 'Hai' :
                                         ($schedule['day'] == 'Tuesday' ? 'Ba' :
                                             ($schedule['day'] == 'Wednesday' ? 'Tư' :
                                                 ($schedule['day'] == 'Thursday' ? 'Năm' :
                                                     ($schedule['day'] == 'Friday' ? 'Sáu' :
                                                         ($schedule['day'] == 'Saturday' ? 'Bảy' : 'Chủ Nhật'))))) }}
-                                                                        </td>
-                                                                        <td>{{ $schedule['shift'] == 'morning' ? '08:00 - 12:00' : '14:00 - 18:00' }}
-                                                                        </td>
-                                                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CSS giúp bố cục cân đối, đẹp hơn -->
-            <style>
-                .table th {
-                    font-weight: 600;
-                }
-
-                .table-sm td,
-                .table-sm th {
-                    padding: 8px;
-                }
-
-                .border {
-                    border: 1px solid #ddd;
-                }
-
-                .table-light {
-                    background-color: #f8f9fa;
-                }
-
-                .card {
-                    border: 1px solid #ddd;
-                }
-            </style>
-
-
-
-
-            <!-- Chức năng quản lý -->
-            <div class="row mt-5">
-                <div class="col-md-6">
-                    <div class="card shadow-lg p-4 text-center">
-                        <div class="card-body">
-                            <h3 class="card-title" style="font-size: 22px; font-weight: 600;">Lịch khám bệnh</h3>
-                            <a href="{{ url('/admindoctor/schedule') }}" class="btn btn-lg btn-primary mt-3">Xem
-                                lịch</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card shadow-lg p-4 text-center">
-                        <div class="card-body">
-                            <h3 class="card-title" style="font-size: 22px; font-weight: 600;">Hồ Sơ Bệnh Nhân</h3>
-                            <a href="{{ url('/admindoctor/medicalrecords') }}" class="btn btn-lg btn-primary mt-3">Xem
-                                chi
-                                tiết</a>
-                        </div>
+                                    </td>
+                                    <td class="py-2">
+                                        <span class="badge bg-light text-dark border fw-medium px-3 py-1 rounded-pill">
+                                            {{ $schedule['shift'] == 'morning' ? '08:00 - 12:00' : '14:00 - 18:00' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="2" class="py-3 text-secondary small fst-italic">Chưa có lịch làm việc được phân công.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-        <footer class="footer">
-            <div class="container">
-                <div class="row">
-                    <!-- Cột 1: Thông tin bệnh viện -->
-                    <div class="col-md-3 footer-col">
-                        <a href="#" class="footer-logo">
-                            <img src="{{ asset('img/phenikaamec.webp') }}" alt="PHENIKAA MEC">
-                        </a>
 
-                        <p><strong>Bệnh viện Đại Học Phenikaa</strong></p>
-                        <p>📍 Đường Kiều Mai, P. Phương Canh, Nam Từ Liêm, Hà Nội</p>
-                        <p>📜 Giấy phép hoạt động số 386/BYT</p>
-                        <p>📞 Hotline: <a href="tel:1900886648">1900.88.66.48</a> - <a
-                                href="tel:02422226688">02422226688</a></p>
-                        <p>📧 Email: <a href="mailto:support@phenikaamec.com">support@phenikaamec.com</a></p>
-                    </div>
-
-                    <!-- Cột 2: Hệ thống phòng khám -->
-                    <div class="col-md-3 footer-col">
-                        <h5 class="footer-title">HỆ THỐNG PHÒNG KHÁM</h5>
-                        <p><strong>Phòng Khám Đa Khoa - Hoàng Ngân</strong></p>
-                        <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                        <p>📞 <a href="tel:02422226699">02422226699</a></p>
-                        <p>⏰ Giờ làm việc: 7h30 - 17h00</p>
-
-                        <p><strong>Phòng Khám Răng Hàm Mặt</strong></p>
-                        <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                        <p>📞 <a href="tel:0978625499">0978625499</a></p>
-                        <p>⏰ Giờ làm việc: 8h00 - 18h00</p>
-                    </div>
-
-                    <!-- Cột 3: Liên kết nhanh -->
-                    <div class="col-md-3 footer-col">
-                        <h5 class="footer-title">LIÊN KẾT NHANH</h5>
-                        <ul class="list-unstyled">
-                            <li><a href="#">Chương trình Bác sĩ hợp tác</a></li>
-                            <li><a href="#">Chuyên khoa</a></li>
-                            <li><a href="#">Dịch vụ</a></li>
-                            <li><a href="#">Bệnh học</a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Cột 4: Ứng dụng & Mạng xã hội -->
-                    <div class="col-md-3 footer-col">
-                        <h5 class="footer-title">TẢI APP PHENIKAA MEC</h5>
-                        <div class="qr-box">
-                            <a href="#"><img src="{{ asset('img/qr.png') }}" alt="Facebook"></a>
-                        </div>
-
-                        <div class="social-icons">
-                            <a href="#"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
-                            <a href="#"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
-                            <a href="#"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
-                        </div>
-                    </div>
+        <!-- Chức năng lối tắt -->
+        <div class="col-xl-5 col-lg-6 mt-4 mt-lg-0 d-flex flex-column gap-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 p-2 position-relative overflow-hidden" style="transition: transform 0.2s;">
+                <div class="position-absolute top-0 end-0 opacity-10" style="margin-top: -20px; margin-right: -20px;">
+                    <i class="bi bi-calendar-check" style="font-size: 8rem; color: #0d6efd;"></i>
                 </div>
-
-                <hr class="footer-divider">
-
-                <div class="text-center">
-                    <p>&copy; {{ date('Y') }} thuộc về Bệnh viện Đại học Phenikaa</p>
-                    <p><a href="#">Điều khoản sử dụng</a> | <a href="#">Chính sách bảo mật</a></p>
+                <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-center align-items-center position-relative z-1">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                        <i class="bi bi-calendar2-week fs-1"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3" style="color: #0056b3;">Lịch khám bệnh</h4>
+                    <p class="text-secondary mb-4">Xem danh sách bệnh nhân đã đặt lịch hẹn và lên hồ sơ bệnh án nhanh chóng.</p>
+                    <a href="{{ url('/admindoctor/schedule') }}" class="btn btn-primary rounded-pill px-5 shadow-sm fw-medium">Truy cập ngay <i class="bi bi-arrow-right ms-2"></i></a>
                 </div>
             </div>
-        </footer>
 
-        <style>
-            /* Font chữ từ Google Fonts */
-            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-
-            /* Footer Styles */
-            .footer {
-                background-color: #b3e5fc;
-                color: #003366;
-                font-family: 'Poppins', sans-serif;
-                padding: 40px 10%;
-            }
-
-            .footer-col {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .footer-logo img {
-                max-width: 180px;
-                /* Giới hạn kích thước logo */
-                display: block;
-                margin-bottom: 10px;
-                /* Tạo khoảng cách với nội dung */
-            }
-
-            .footer-title {
-                font-size: 16px;
-                font-weight: 600;
-                color: #0056b3;
-                margin-bottom: 12px;
-            }
-
-            .footer a {
-                color: #003366;
-                text-decoration: none;
-                font-size: 14px;
-                font-weight: 400;
-            }
-
-            .footer a:hover {
-                color: #0056b3;
-                text-decoration: underline;
-            }
-
-            .footer p {
-                font-size: 14px;
-                font-weight: 400;
-            }
-
-            .footer .list-unstyled li {
-                margin-bottom: 6px;
-            }
-
-            .qr-box {
-                background: white;
-                padding: 10px;
-                text-align: center;
-                font-weight: 500;
-                border: 2px solid #003366;
-                border-radius: 5px;
-            }
-
-            /* Mạng xã hội */
-            .social-icons {
-                display: flex;
-                gap: 10px;
-                margin-top: 12px;
-            }
-
-            .social-icons img {
-                width: 30px;
-                height: 30px;
-                transition: transform 0.2s ease-in-out;
-            }
-
-            .social-icons img:hover {
-                transform: scale(1.1);
-            }
-
-            .footer-divider {
-                margin: 20px 0;
-                border-top: 1px solid #0056b3;
-            }
-
-            /* Responsive */
-            @media (max-width: 768px) {
-                .footer .row {
-                    text-align: center;
-                }
-
-                .footer-col {
-                    align-items: center;
-                }
-
-
-            }
-        </style>
-
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
-</html>
+            <div class="card border-0 shadow-sm rounded-4 text-center h-100 p-2 position-relative overflow-hidden" style="transition: transform 0.2s;">
+                <div class="position-absolute top-0 end-0 opacity-10" style="margin-top: -20px; margin-right: -20px;">
+                    <i class="bi bi-folder2-open" style="font-size: 8rem; color: #198754;"></i>
+                </div>
+                <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-center align-items-center position-relative z-1">
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                        <i class="bi bi-file-earmark-medical fs-1"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3 text-success">Hồ Sơ Bệnh Nhân</h4>
+                    <p class="text-secondary mb-4">Quản lý và cập nhật toàn bộ hồ sơ khám chữa bệnh, chẩn đoán của bệnh nhân.</p>
+                    <a href="{{ url('/admindoctor/medicalrecords') }}" class="btn btn-success rounded-pill px-5 shadow-sm fw-medium">Xem chi tiết <i class="bi bi-arrow-right ms-2"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

@@ -73,7 +73,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:patient'])->prefix('patient')->name('patient.')->group(function () {
     Route::get('/account', [PatientAreaController::class, 'account'])->name('account');
-    Route::get('/appointments', [PatientAreaController::class, 'appointments'])->name('appointments');
+    Route::post('/progress', [PatientAreaController::class, 'storeProgress'])->name('progress.store');
 });
 
 /*
@@ -91,9 +91,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy');
 
     Route::prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', function () {
-            return view('role.admin');
-        })->name('dashboard');
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
         Route::get('/doctors', [AdminController::class, 'showDoctors'])->name('doctors.index');
         Route::post('/doctors', [AdminController::class, 'storeDoctor'])->name('doctors.store');
@@ -151,6 +149,9 @@ Route::middleware(['auth', 'role:admindoctor'])->prefix('admindoctor')->group(fu
     Route::get('/medicalrecords/{id}/edit', [DoctorMedicalRecordController::class, 'edit'])->name('admindoctor.medicalrecords.edit');
     Route::put('/medicalrecords/{id}', [DoctorMedicalRecordController::class, 'update'])->name('admindoctor.medicalrecords.update');
     Route::delete('/medicalrecords/{id}', [DoctorMedicalRecordController::class, 'destroy'])->name('admindoctor.medicalrecords.destroy');
+
+    Route::get('/progress', [\App\Http\Controllers\DoctorProgressController::class, 'index'])->name('admindoctor.progress.index');
+    Route::delete('/progress/{id}', [\App\Http\Controllers\DoctorProgressController::class, 'destroy'])->name('admindoctor.progress.destroy');
 
     Route::get('/invoices/{id}/print', [InvoiceController::class, 'print'])->name('admindoctor.invoices.print');
     Route::resource('invoices', InvoiceController::class)->names('admindoctor.invoices');

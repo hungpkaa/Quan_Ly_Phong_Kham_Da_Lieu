@@ -4,25 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Hash;
 
-class Doctor extends Model
+class PatientProgress extends Model
 {
     use HasFactory;
 
+    protected $table = 'patient_progresses';
+
     protected $fillable = [
         'user_id',
-        'specialty',
-        'bio',
-        'image',
-        'working_hours',
-    ];
-    protected $casts = [
-        'working_hours' => 'array',
+        'doctor_id',
+        'image_path',
+        'notes',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function doctor()
+    {
+        return $this->belongsTo(Doctor::class);
     }
 }

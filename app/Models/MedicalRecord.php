@@ -18,17 +18,19 @@ class MedicalRecord extends Model
 
     protected $fillable = [
         'doctor_id',
-        'name',
-        'email',
-        'phone',
-        'age',
-        'cccd',
         'service',
         'exam_date',
         'cost',
         'status',
         'diagnosis',
         'prescription',
-        'notes'
+        'notes',
+        'follow_up_date',
+        'user_id'
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

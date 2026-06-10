@@ -5,20 +5,49 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Invoice;
 use App\Models\MedicalRecord;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Doctor;
 
 class InvoiceController extends Controller
 {
+    private function currentDoctor()
+    {
+        return Auth::user()->doctor;
+    }
+
+    private function authorizeMedicalRecord($medicalRecord)
+    {
+        $doctor = $this->currentDoctor();
+        if ($medicalRecord->doctor_id !== $doctor->id) {
+            abort(403, 'Bạn không có quyền thao tác trên hồ sơ bệnh án này.');
+        }
+    }
+
+    private function authorizeInvoice($invoice)
+    {
+        $doctor = $this->currentDoctor();
+        if (!$invoice->medicalRecord || $invoice->medicalRecord->doctor_id !== $doctor->id) {
+            abort(403, 'Bạn không có quyền truy cập hóa đơn này vì nó không thuộc hồ sơ bệnh án do bạn phụ trách.');
+        }
+    }
+
     // Hiển thị danh sách hóa đơn với chức năng tìm kiếm
     public function index(Request $request)
     {
-        $query = Invoice::with('medicalRecord');
+        $doctor = $this->currentDoctor();
+        $query = Invoice::with('medicalRecord')->whereHas('medicalRecord', function($q) use ($doctor) {
+            $q->where('doctor_id', $doctor->id);
+        });
 
         if ($request->has('search')) {
             $search = $request->input('search');
-            $query->where('id', 'like', "%$search%")
-                ->orWhere('patient_name', 'like', "%$search%")
-                ->orWhere('invoice_date', 'like', "%$search%")
-                ->orWhere('status', 'like', "%$search%");
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%$search%")
+                  ->orWhereHas('medicalRecord.user', function($uq) use ($search) {
+                      $uq->where('name', 'like', "%$search%")
+                         ->orWhere('phone', 'like', "%$search%");
+                  });
+            });
         }
 
         $invoices = $query->latest()->paginate(10);
@@ -34,6 +63,7 @@ class InvoiceController extends Controller
 
         if ($request->has('medical_record_id')) {
             $medicalRecord = MedicalRecord::findOrFail($request->input('medical_record_id'));
+            $this->authorizeMedicalRecord($medicalRecord);
             $invoices = Invoice::where('medical_record_id', $medicalRecord->id)->latest()->paginate(5); // SỬA LẠI paginate(5)
 
             // Lấy dữ liệu "Dịch vụ + Thuốc" từ hồ sơ bệnh án
@@ -57,6 +87,7 @@ class InvoiceController extends Controller
         ]);
 
         $medicalRecord = MedicalRecord::findOrFail($request->input('medical_record_id'));
+        $this->authorizeMedicalRecord($medicalRecord);
 
         // Kiểm tra dữ liệu từ form, nếu trống thì lấy từ hồ sơ bệnh án
         $servicesMedicines = $request->input('services_medicines');
@@ -67,10 +98,6 @@ class InvoiceController extends Controller
         // Lưu vào hóa đơn
         $invoice = Invoice::create([
             'medical_record_id' => $medicalRecord->id,
-            'patient_name' => $medicalRecord->name,
-            'exam_date' => $medicalRecord->exam_date,
-            'phone' => $medicalRecord->phone,
-            'cost' => $medicalRecord->cost,
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,
             'status' => $request->status,
@@ -92,6 +119,7 @@ class InvoiceController extends Controller
     public function edit($id)
     {
         $invoice = Invoice::findOrFail($id);
+        $this->authorizeInvoice($invoice);
         return view('role.editinvoice', compact('invoice'));
     }
 
@@ -105,6 +133,7 @@ class InvoiceController extends Controller
         ]);
 
         $invoice = Invoice::findOrFail($id);
+        $this->authorizeInvoice($invoice);
         $invoice->update([
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,
@@ -118,6 +147,7 @@ class InvoiceController extends Controller
     public function destroy($id)
     {
         $invoice = Invoice::findOrFail($id);
+        $this->authorizeInvoice($invoice);
         $invoice->delete();
 
         return redirect()->back();
@@ -128,6 +158,7 @@ class InvoiceController extends Controller
     public function print($id)
     {
         $invoice = Invoice::findOrFail($id);
+        $this->authorizeInvoice($invoice);
         return view('role.printinvoice', compact('invoice'));
     }
 

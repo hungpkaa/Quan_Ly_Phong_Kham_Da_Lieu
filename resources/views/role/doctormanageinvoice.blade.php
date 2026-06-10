@@ -1,379 +1,212 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.admin_layout')
 
+@section('title', 'Quản lý Hóa Đơn (Bác sĩ)')
 
-@section('title', 'Quản lý Hóa Đơn')
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-</head>
-
-<body>
-    <header>
-        <div class="py-3" style="background-color: #e0f7fa; border-bottom: 1px solid #ccc;">
-            <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- Logo -->
-                <a href="{{ url('/admindoctor/dashboard') }}" class="d-flex align-items-center">
-                    <img src="/img/logo.webp" alt="Logo" style="height: 50px;">
-                </a>
-
-                <!-- Search -->
-                <div class="d-flex align-items-center" style="max-width: 400px; width: 100%;">
-                    <input type="text" class="form-control" placeholder="Tìm kiếm..." style="border-radius: 25px;">
-                    <button class="btn btn-primary ms-2" style="border-radius: 25px;">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-
-                <!-- Actions -->
-                <a href="/appointments/create" class="btn btn-primary btn-sm rounded-pill px-3"
-                    style="background-color: #007bff; border-color: #007bff;">Đặt lịch khám</a>
-                <a href="#" class="btn btn-info btn-sm rounded-pill px-3" style="color: white;">1900 886648</a>
-                <a href="#" class="btn btn-warning btn-sm rounded-pill px-3" style="color: white;">Hướng dẫn khách
-                    hàng</a>
-
-                <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="d-inline-block">
-                    @csrf
-                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">Đăng xuất</button>
-                </form>
-
-                <!-- Language Dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-light btn-sm rounded-circle dropdown-toggle" id="languageDropdown"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="/img/vietnam.png" alt="VN" style="height: 20px;"> <!-- Icon cờ -->
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item" href="#">Vietnamese</a></li>
-                        <li><a class="dropdown-item" href="#">English</a></li>
-                    </ul>
-                </div>
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <!-- Header Page -->
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h3 class="mb-1" style="color: #0056b3; font-weight: 600;">Quản lý Hóa Đơn</h3>
+                <p class="text-secondary mb-0">Theo dõi doanh thu và lập hóa đơn khám chữa bệnh cho khách hàng.</p>
+            </div>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium" data-bs-toggle="modal" data-bs-target="#addInvoiceModal">
+                    <i class="bi bi-plus-lg me-1"></i> Lập Hóa Đơn
+                </button>
             </div>
         </div>
-    </header>
-
-    <div class="container py-4">
-        <h1 class="text-center mb-4">Quản lý Hóa Đơn</h1>
-
-        @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-
-        <!-- Form tạo hóa đơn -->
-        <h3 class="mb-3">Tạo Hóa Đơn</h3>
-        <form method="POST" action="{{ route('admindoctor.invoices.store') }}">
-            @csrf
-            @if(isset($medicalRecord))
-                <input type="hidden" name="medical_record_id" value="{{ $medicalRecord->id }}">
-
-                <div class="mb-3">
-                    <label class="form-label">ID Hồ Sơ</label>
-                    <input type="text" class="form-control" value="{{ $medicalRecord->id }}" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Tên Bệnh Nhân</label>
-                    <input type="text" class="form-control" value="{{ $medicalRecord->name }}" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Ngày Khám</label>
-                    <input type="date" class="form-control" value="{{ $medicalRecord->exam_date }}" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Số Điện Thoại</label>
-                    <input type="text" class="form-control" value="{{ $medicalRecord->phone }}" readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Chi Phí</label>
-                    <input type="text" class="form-control" value="{{ number_format($medicalRecord->cost, 0) }} VNĐ"
-                        readonly>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Ngày Làm Hồ Sơ</label>
-                    <input type="date" class="form-control" value="{{ $medicalRecord->created_at->format('Y-m-d') }}"
-                        readonly>
-                </div>
-            @endif
-
-            <div class="mb-3">
-                <label for="invoice_date" class="form-label">Ngày Lập Hóa Đơn</label>
-                <input type="date" name="invoice_date" id="invoice_date" class="form-control" required
-                    value="{{ now()->format('Y-m-d') }}">
-            </div>
-            <div class="mb-3">
-                <label for="total_amount" class="form-label">Tổng Số Tiền</label>
-                <input type="number" name="total_amount" id="total_amount" class="form-control" step="0.01" required
-                    value="{{ old('total_amount', $medicalRecord->cost ?? '') }}">
-            </div>
-            <div class="mb-3">
-                <label for="services_medicines" class="form-label">Dịch Vụ + Thuốc</label>
-                <textarea name="services_medicines" id="services_medicines" class="form-control"
-                    rows="3">{{ old('services_medicines', $servicesMedicines ?? '') }}</textarea>
-            </div>
-
-
-
-            <div class="mb-3">
-                <label for="status" class="form-label">Trạng Thái Thanh Toán</label>
-                <select name="status" id="status" class="form-control" required>
-                    <option value="Chưa thanh toán">Chưa thanh toán</option>
-                    <option value="Đã thanh toán">Đã thanh toán</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success w-100">Tạo Hóa Đơn</button>
-        </form>
-
-        <!-- Danh sách hóa đơn -->
-        <h3 class="mt-5">Danh Sách Hóa Đơn</h3>
-        @if(isset($invoices) && $invoices->isEmpty())
-            <div class="alert alert-info">Chưa có hóa đơn nào.</div>
-        @elseif(isset($invoices))
-            <div class="table-responsive">
-                <table class="table table-bordered mt-3">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Ngày Lập Hóa Đơn</th>
-                            <th>Tên Bệnh Nhân</th>
-                            <th>Ngày Khám</th>
-                            <th>Số Điện Thoại</th>
-                            <th>Chi Phí</th>
-                            <th>Ngày Làm Hồ Sơ</th>
-                            <th>Tổng Số Tiền</th>
-                            <th>Dịch Vụ + Thuốc</th>
-                            <th>Trạng Thái</th>
-                            <th>ID Hồ Sơ</th>
-                            <th>Hành Động</th> <!-- Cột mới -->
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($invoices as $invoice)
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>{{ $invoice->invoice_date }}</td>
-                                <td>{{ $invoice->patient_name }}</td>
-                                <td>{{ $invoice->exam_date }}</td>
-                                <td>{{ $invoice->phone }}</td>
-                                <td>{{ number_format($invoice->cost, 0) }} VNĐ</td>
-                                <td>{{ $invoice->created_at->format('Y-m-d') }}</td>
-                                <td>{{ number_format($invoice->total_amount, 0) }} VNĐ</td>
-                                <td>{{ $invoice->services_medicines }}</td>
-                                <td>{{ $invoice->status }}</td>
-                                <td>{{ $invoice->medical_record_id }}</td>
-                                <td>
-
-                                    <!-- Nút In Hóa Đơn -->
-                                    <a href="{{ route('admindoctor.invoices.print', $invoice->id) }}"
-                                        class="btn btn-secondary btn-sm" target="_blank">
-                                        <i class="bi bi-printer"></i> In
-                                    </a>
-                                    <!-- Nút Xóa -->
-                                    <form action="{{ route('admindoctor.invoices.destroy', $invoice->id) }}" method="POST"
-                                        onsubmit="return confirm('Bạn có chắc muốn xóa hóa đơn này?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-
-                </table>
-            </div>
-            {{ $invoices->links() }}
-        @endif
-
     </div>
 
+    <!-- Alert Messages -->
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> <strong>Thành công!</strong> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Lỗi!</strong> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
 
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <!-- Cột 1: Thông tin bệnh viện -->
-                <div class="col-md-3 footer-col">
-                    <a href="#" class="footer-logo">
-                        <img src="{{ asset('img/phenikaamec.webp') }}" alt="PHENIKAA MEC">
-                    </a>
-
-                    <p><strong>Bệnh viện Đại Học Phenikaa</strong></p>
-                    <p>📍 Đường Kiều Mai, P. Phương Canh, Nam Từ Liêm, Hà Nội</p>
-                    <p>📜 Giấy phép hoạt động số 386/BYT</p>
-                    <p>📞 Hotline: <a href="tel:1900886648">1900.88.66.48</a> - <a
-                            href="tel:02422226688">02422226688</a></p>
-                    <p>📧 Email: <a href="mailto:support@phenikaamec.com">support@phenikaamec.com</a></p>
-                </div>
-
-                <!-- Cột 2: Hệ thống phòng khám -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">HỆ THỐNG PHÒNG KHÁM</h5>
-                    <p><strong>Phòng Khám Đa Khoa - Hoàng Ngân</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:02422226699">02422226699</a></p>
-                    <p>⏰ Giờ làm việc: 7h30 - 17h00</p>
-
-                    <p><strong>Phòng Khám Răng Hàm Mặt</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:0978625499">0978625499</a></p>
-                    <p>⏰ Giờ làm việc: 8h00 - 18h00</p>
-                </div>
-
-                <!-- Cột 3: Liên kết nhanh -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">LIÊN KẾT NHANH</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Chương trình Bác sĩ hợp tác</a></li>
-                        <li><a href="#">Chuyên khoa</a></li>
-                        <li><a href="#">Dịch vụ</a></li>
-                        <li><a href="#">Bệnh học</a></li>
-                    </ul>
-                </div>
-
-                <!-- Cột 4: Ứng dụng & Mạng xã hội -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">TẢI APP PHENIKAA MEC</h5>
-                    <div class="qr-box">
-                        <a href="#"><img src="{{ asset('img/qr.png') }}" alt="Facebook"></a>
-                    </div>
-
-                    <div class="social-icons">
-                        <a href="#"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
-                        <a href="#"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
-                        <a href="#"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
-                    </div>
-                </div>
-            </div>
-
-            <hr class="footer-divider">
-
-            <div class="text-center">
-                <p>&copy; {{ date('Y') }} thuộc về Bệnh viện Đại học Phenikaa</p>
-                <p><a href="#">Điều khoản sử dụng</a> | <a href="#">Chính sách bảo mật</a></p>
-            </div>
+    <!-- Danh sách Hóa Đơn -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white border-bottom py-3 px-4 rounded-top-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">
+                <i class="bi bi-list-columns me-2"></i> Danh Sách Hóa Đơn Đã Lập
+            </h6>
         </div>
-    </footer>
+        
+        <div class="card-body p-0">
+            @if(isset($invoices) && $invoices->isEmpty())
+                <div class="text-center py-5">
+                    <div class="text-secondary opacity-50 mb-3"><i class="bi bi-receipt fs-1"></i></div>
+                    <p class="mb-0 text-secondary">Bạn chưa lập hóa đơn nào.</p>
+                </div>
+            @elseif(isset($invoices))
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 60px;">#</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Khách hàng</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center">Ngày lập</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Chi tiết (Dịch vụ + Thuốc)</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-end">Tổng tiền</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center">Trạng thái</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 100px;">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($invoices as $invoice)
+                            <tr>
+                                <td class="py-3 text-center text-secondary">{{ $loop->iteration }}</td>
+                                <td class="py-3">
+                                    <div class="fw-semibold text-dark">{{ optional(optional($invoice->medicalRecord)->user)->name }}</div>
+                                    <div class="text-secondary small">SĐT: {{ optional(optional($invoice->medicalRecord)->user)->phone }} | HS: #{{ $invoice->medical_record_id }}</div>
+                                </td>
+                                <td class="py-3 text-center text-secondary small">{{ \Carbon\Carbon::parse($invoice->invoice_date)->format('d/m/Y') }}</td>
+                                <td class="py-3 text-secondary small" style="max-width: 250px;">
+                                    <div class="text-truncate" title="{{ $invoice->services_medicines }}">
+                                        {{ $invoice->services_medicines ?: 'Không có ghi chú' }}
+                                    </div>
+                                </td>
+                                <td class="py-3 text-end fw-semibold text-danger">{{ number_format($invoice->total_amount, 0) }} đ</td>
+                                <td class="py-3 text-center">
+                                    @if($invoice->status === 'Chưa thanh toán')
+                                        <span class="badge bg-warning text-dark bg-opacity-25 border border-warning rounded-pill fw-medium px-2 py-1">Chưa thanh toán</span>
+                                    @else
+                                        <span class="badge bg-success text-success bg-opacity-10 border border-success rounded-pill fw-medium px-2 py-1"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>
+                                    @endif
+                                </td>
+                                <td class="py-3 text-center">
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <a href="{{ route('admindoctor.invoices.print', $invoice->id) }}" class="btn btn-sm btn-light border text-primary rounded-circle" target="_blank" title="In Hóa Đơn">
+                                            <i class="bi bi-printer"></i>
+                                        </a>
+                                        <form method="POST" action="{{ route('admindoctor.invoices.destroy', $invoice->id) }}" class="m-0">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-light border text-danger rounded-circle" onclick="return confirm('Bạn có chắc chắn muốn xóa hóa đơn của {{ optional(optional($invoice->medicalRecord)->user)->name }}?')" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-4 py-3 border-top">
+                    {{ $invoices->links() }}
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
 
-    <style>
-        /* Font chữ từ Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+<!-- Modal Thêm Hóa Đơn -->
+@php $showModal = isset($medicalRecord); @endphp
+<div class="modal fade {{ $showModal ? 'show' : '' }}" id="addInvoiceModal" tabindex="-1" aria-hidden="{{ $showModal ? 'false' : 'true' }}" style="{{ $showModal ? 'display: block; background: rgba(0,0,0,0.5);' : '' }}">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom py-3 px-4 bg-light rounded-top-4">
+                <h5 class="modal-title fw-semibold text-primary">
+                    <i class="bi bi-receipt me-2"></i>Lập Hóa Đơn
+                </h5>
+                @if($showModal)
+                    <a href="{{ route('admindoctor.invoices.index') }}" class="btn-close"></a>
+                @else
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                @endif
+            </div>
+            
+            <form method="POST" action="{{ route('admindoctor.invoices.store') }}">
+                @csrf
+                <div class="modal-body p-4">
+                    @if(isset($medicalRecord))
+                        <input type="hidden" name="medical_record_id" value="{{ $medicalRecord->id }}">
+                        
+                        <div class="row g-3 mb-4 p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-25">
+                            <h6 class="text-primary fw-semibold mb-2">Thông tin Hồ sơ Bệnh án #{{ $medicalRecord->id }}</h6>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-medium small mb-1">Tên Bệnh Nhân</label>
+                                <input type="text" class="form-control form-control-sm bg-white" value="{{ $medicalRecord->name }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-medium small mb-1">Số Điện Thoại</label>
+                                <input type="text" class="form-control form-control-sm bg-white" value="{{ $medicalRecord->phone }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-medium small mb-1">Ngày Khám</label>
+                                <input type="text" class="form-control form-control-sm bg-white" value="{{ \Carbon\Carbon::parse($medicalRecord->exam_date)->format('d/m/Y') }}" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-secondary fw-medium small mb-1">Chi Phí Gốc (Chưa thuốc)</label>
+                                <input type="text" class="form-control form-control-sm bg-white text-danger fw-medium" value="{{ number_format($medicalRecord->cost, 0) }} VNĐ" readonly>
+                            </div>
+                        </div>
+                    @else
+                        <div class="alert alert-warning border-0 small">
+                            <i class="bi bi-info-circle me-2"></i>Vui lòng chọn tạo hóa đơn từ danh sách <strong>Hồ Sơ Bệnh Án</strong> để liên kết dữ liệu.
+                        </div>
+                    @endif
 
-        /* Footer Styles */
-        .footer {
-            background-color: #b3e5fc;
-            color: #003366;
-            font-family: 'Poppins', sans-serif;
-            padding: 40px 10%;
-        }
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="invoice_date" class="form-label text-secondary fw-medium small mb-1">Ngày Lập Hóa Đơn <span class="text-danger">*</span></label>
+                            <input type="date" name="invoice_date" id="invoice_date" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ now()->format('Y-m-d') }}" required>
+                        </div>
 
+                        <div class="col-md-6">
+                            <label for="status" class="form-label text-secondary fw-medium small mb-1">Trạng Thái Thanh Toán <span class="text-danger">*</span></label>
+                            <select name="status" id="status" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2" required>
+                                <option value="Chưa thanh toán">Chưa thanh toán</option>
+                                <option value="Đã thanh toán">Đã thanh toán</option>
+                            </select>
+                        </div>
 
-        .alert {
-            text-align: center;
-            width: 100%;
-            margin: 20px auto;
-            /* Căn giữa theo chiều ngang */
-            padding: 15px;
-            font-size: 18px;
-        }
+                        <div class="col-md-12">
+                            <label for="total_amount" class="form-label text-secondary fw-medium small mb-1">Tổng Tiền (Dịch vụ + Thuốc) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="any" name="total_amount" id="total_amount" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('total_amount', $medicalRecord->cost ?? '') }}" required>
+                                <span class="input-group-text bg-light border-0 text-secondary fw-medium px-4">VNĐ</span>
+                            </div>
+                        </div>
 
+                        <div class="col-md-12">
+                            <label for="services_medicines" class="form-label text-secondary fw-medium small mb-1">Chi tiết Dịch Vụ & Thuốc</label>
+                            <textarea name="services_medicines" id="services_medicines" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" rows="3" placeholder="Liệt kê dịch vụ, các loại thuốc, thủ thuật...">{{ old('services_medicines', $servicesMedicines ?? '') }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-top px-4 py-3 bg-light rounded-bottom-4">
+                    @if($showModal)
+                        <a href="{{ route('admindoctor.invoices.index') }}" class="btn btn-secondary rounded-pill px-4">Hủy</a>
+                    @else
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Đóng</button>
+                    @endif
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium" {{ !isset($medicalRecord) ? 'disabled' : '' }}>Lập Hóa Đơn</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-        .footer-col {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .footer-logo img {
-            max-width: 180px;
-            /* Giới hạn kích thước logo */
-            display: block;
-            margin-bottom: 10px;
-            /* Tạo khoảng cách với nội dung */
-        }
-
-        .footer-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #0056b3;
-            margin-bottom: 12px;
-        }
-
-        .footer a {
-            color: #003366;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .footer a:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-
-        .footer p {
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .footer .list-unstyled li {
-            margin-bottom: 6px;
-        }
-
-        .qr-box {
-            background: white;
-            padding: 10px;
-            text-align: center;
-            font-weight: 500;
-            border: 2px solid #003366;
-            border-radius: 5px;
-        }
-
-        /* Mạng xã hội */
-        .social-icons {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .social-icons img {
-            width: 30px;
-            height: 30px;
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .social-icons img:hover {
-            transform: scale(1.1);
-        }
-
-        .footer-divider {
-            margin: 20px 0;
-            border-top: 1px solid #0056b3;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .footer .row {
-                text-align: center;
-            }
-
-            .footer-col {
-                align-items: center;
-            }
-
-
-        }
-    </style>
-
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
-
-</body>
-
-</html>
+@push('scripts')
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
+@endpush
+@endsection

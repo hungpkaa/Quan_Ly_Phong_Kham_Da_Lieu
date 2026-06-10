@@ -19,11 +19,13 @@ class MedicalRecordController extends Controller
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('cccd', 'like', "%{$search}%")
-                    ->orWhere('diagnosis', 'like', "%{$search}%");
+                $q->whereHas('user', function($uq) use ($search) {
+                    $uq->where('name', 'like', "%{$search}%")
+                       ->orWhere('email', 'like', "%{$search}%")
+                       ->orWhere('phone', 'like', "%{$search}%")
+                       ->orWhere('cccd', 'like', "%{$search}%");
+                })
+                ->orWhere('diagnosis', 'like', "%{$search}%");
             });
         }
 
@@ -68,12 +70,30 @@ class MedicalRecordController extends Controller
             'diagnosis' => 'required|string',
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
+            'follow_up_date' => 'nullable|date',
         ]);
 
         // Nhân giá trị cost với 1000 nếu có
         if ($request->filled('cost')) {
             $request->merge(['cost' => $request->input('cost') * 1000]);
         }
+        
+        $user = \App\Models\User::firstOrCreate(
+            ['phone' => $request->phone],
+            [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'role' => 'patient'
+            ]
+        );
+
+        $user->update([
+            'age' => $request->age,
+            'cccd' => $request->cccd,
+        ]);
+
+        $request->merge(['user_id' => $user->id]);
 
         MedicalRecord::create($request->all());
 
@@ -99,11 +119,21 @@ class MedicalRecordController extends Controller
             'diagnosis' => 'required|string',
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
+            'follow_up_date' => 'nullable|date',
         ]);
 
-        // Nhân giá trị cost với 1000 nếu có
         if ($request->filled('cost')) {
             $request->merge(['cost' => $request->input('cost') * 1000]);
+        }
+        
+        if ($record->user) {
+            $record->user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'age' => $request->age,
+                'cccd' => $request->cccd,
+            ]);
         }
 
         $record->update($request->all());

@@ -1,308 +1,305 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.admin_layout')
+
 @section('title', 'Admin Dashboard')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-</head>
-
-<body>
-    <header>
-        <div class="py-3" style="background-color: #e0f7fa; border-bottom: 1px solid #ccc;">
-            <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- Logo -->
-                <a href="{{ url('/admin/dashboard') }}" class="d-flex align-items-center">
-                    <img src="/img/logo.webp" alt="Logo" style="height: 50px;">
-                </a>
-
-                <!-- Search -->
-                <div class="d-flex align-items-center" style="max-width: 400px; width: 100%;">
-                    <input type="text" class="form-control" placeholder="Tìm kiếm..." style="border-radius: 25px;">
-                    <button class="btn btn-primary ms-2" style="border-radius: 25px;">
-                        <i class="bi bi-search"></i>
-                    </button>
-                </div>
-
-                <!-- Actions -->
-                <a href="/appointments/create" class="btn btn-primary btn-sm rounded-pill px-3"
-                    style="background-color: #007bff; border-color: #007bff;">Đặt lịch khám</a>
-                <a href="#" class="btn btn-info btn-sm rounded-pill px-3" style="color: white;">1900 886648</a>
-                <a href="#" class="btn btn-warning btn-sm rounded-pill px-3" style="color: white;">Hướng dẫn khách
-                    hàng</a>
-
-                <!-- Logout -->
-                <form method="POST" action="{{ route('logout') }}" class="d-inline-block">
-                    @csrf
-                    <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3">Đăng xuất</button>
-                </form>
-
-                <!-- Language Dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-light btn-sm rounded-circle dropdown-toggle" id="languageDropdown"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="/img/vietnam.png" alt="VN" style="height: 20px;"> <!-- Icon cờ -->
-                    </button>
-                    <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                        <li><a class="dropdown-item" href="#">Vietnamese</a></li>
-                        <li><a class="dropdown-item" href="#">English</a></li>
-                    </ul>
-                </div>
+@section('content')
+<div class="container-fluid py-2">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-end">
+            <div>
+                <h3 class="mb-1" style="color: #0056b3; font-weight: 600;">Tổng quan hệ thống</h3>
+                <p class="text-secondary mb-0">Xin chào {{ Auth::user()->name ?? 'Admin' }}! Dưới đây là tóm tắt tình hình hoạt động.</p>
+            </div>
+            <div class="text-end d-flex align-items-center gap-2">
+                <span class="badge bg-light text-secondary border px-3 py-2" style="font-weight: 500;">
+                    <i class="bi bi-calendar3 me-1"></i> Dữ liệu ngày {{ date('d/m/Y') }}
+                </span>
+                <select class="form-select form-select-sm bg-light border text-secondary" style="width: auto; height: 33px; font-weight: 500; outline: none; box-shadow: none;" onchange="window.location.href='?filter=' + this.value">
+                    <option value="today" {{ (isset($filter) && $filter == 'today') ? 'selected' : '' }}>Hôm nay</option>
+                    <option value="7days" {{ (isset($filter) && $filter == '7days') ? 'selected' : '' }}>7 ngày qua</option>
+                    <option value="this_month" {{ (isset($filter) && $filter == 'this_month') ? 'selected' : '' }}>Tháng này</option>
+                </select>
             </div>
         </div>
-    </header>
-
-
-    <div class="content">
-        @yield('content')
     </div>
-    <div class="container py-4">
-        <div class="row">
-            <div class="col-md-12 text-center">
-                <h1 class="mb-4"
-                    style="font-family: 'Poppins', sans-serif; font-size: 36px; color: #0056b3; font-weight: 700;">
-                    Welcome Admin!
-                </h1>
+
+    <!-- Quick Stats Row -->
+    <div class="row g-4 mb-4">
+        <!-- Stat 1 -->
+        <div class="col-md-3">
+            <div class="card border shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="text-secondary mb-0" style="font-size: 14px;">Tổng bệnh nhân</h6>
+                        <div class="text-primary rounded p-2" style="background-color: #f0f7ff;">
+                            <i class="bi bi-people fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 text-dark" style="font-weight: 600;">{{ number_format($totalPatients) }}</h3>
+                    <small class="text-success" style="font-size: 13px;"><i class="bi bi-arrow-up-short"></i>+12 bệnh nhân mới (tháng này)</small>
+                </div>
             </div>
         </div>
 
+        <!-- Stat 2 -->
+        <div class="col-md-3">
+            <div class="card border shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="text-secondary mb-0" style="font-size: 14px;">Lịch hẹn hôm nay</h6>
+                        <div class="text-success rounded p-2" style="background-color: #ebf9f1;">
+                            <i class="bi bi-calendar-check fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 text-dark" style="font-weight: 600;">{{ number_format($appointmentsToday) }}</h3>
+                    <small class="text-warning text-dark" style="font-size: 13px;"><i class="bi bi-exclamation-circle-fill me-1"></i>3 lịch đang chờ xác nhận</small>
+                </div>
+            </div>
+        </div>
 
+        <!-- Stat 3 -->
+        <div class="col-md-3">
+            <div class="card border shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="text-secondary mb-0" style="font-size: 14px;">Tổng bác sĩ</h6>
+                        <div class="text-warning rounded p-2" style="background-color: #fff8e6;">
+                            <i class="bi bi-person-badge fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="mb-1 text-dark" style="font-weight: 600;">{{ number_format($totalDoctors) }}</h3>
+                    <small class="text-secondary" style="font-size: 13px;">12/15 bác sĩ đang hoạt động</small>
+                </div>
+            </div>
+        </div>
 
-        <!-- Phần Quản lý -->
-        <div class="row">
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Quản lý bác sĩ</h5>
-                        <a href="{{ url('/admin/doctors') }}" class="btn btn-primary">Xem chi tiết</a>
+        <!-- Stat 4 -->
+        <div class="col-md-3">
+            <div class="card border shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 class="text-secondary mb-0" style="font-size: 14px;">Doanh thu tháng</h6>
+                        <div class="text-danger rounded p-2" style="background-color: #fcebeb;">
+                            <i class="bi bi-wallet2 fs-5"></i>
+                        </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Quản lý Hồ Sơ bệnh nhân</h5>
-                        <a href="{{ url('/admin/medicalrecords') }}" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Quản lý lịch hẹn</h5>
-                        <a href="{{ url('/admin/appointments') }}" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Hỗ Trợ của Bệnh Nhân</h5>
-                        <a href="{{ url('/admin/supports') }}" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Quản Lý Dịch Vụ</h5>
-                        <a href="{{ url('/admin/manageservices') }}" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Quản Lý Lịch Làm Việc</h5>
-                        <a href="{{ url('/admin/workingschedule') }}" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h5 class="card-title">Hóa Đơn và Thống Kê</h5>
-                        <a href="{{ url('/admin/invoices') }}" class="btn btn-primary">Xem chi tiết</a>
-                    </div>
+                    <h3 class="mb-1 text-dark" style="font-weight: 600;">{{ $revenueFormatted == 0 ? '0' : $revenueFormatted }} VNĐ</h3>
+                    <small class="text-success" style="font-size: 13px;"><i class="bi bi-arrow-up-short"></i>Tăng 8,5% so với tháng trước</small>
                 </div>
             </div>
         </div>
     </div>
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <!-- Cột 1: Thông tin bệnh viện -->
-                <div class="col-md-3 footer-col">
-                    <a href="#" class="footer-logo">
-                        <img src="{{ asset('img/phenikaamec.webp') }}" alt="PHENIKAA MEC">
-                    </a>
 
-                    <p><strong>Bệnh viện Đại Học Phenikaa</strong></p>
-                    <p>📍 Đường Kiều Mai, P. Phương Canh, Nam Từ Liêm, Hà Nội</p>
-                    <p>📜 Giấy phép hoạt động số 386/BYT</p>
-                    <p>📞 Hotline: <a href="tel:1900886648">1900.88.66.48</a> - <a
-                            href="tel:02422226688">02422226688</a></p>
-                    <p>📧 Email: <a href="mailto:support@phenikaamec.com">support@phenikaamec.com</a></p>
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">Thống kê Lịch hẹn (7 ngày qua)</h6>
                 </div>
-
-                <!-- Cột 2: Hệ thống phòng khám -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">HỆ THỐNG PHÒNG KHÁM</h5>
-                    <p><strong>Phòng Khám Đa Khoa - Hoàng Ngân</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:02422226699">02422226699</a></p>
-                    <p>⏰ Giờ làm việc: 7h30 - 17h00</p>
-
-                    <p><strong>Phòng Khám Răng Hàm Mặt</strong></p>
-                    <p>📍 Số 167 Hoàng Ngân, Hà Nội</p>
-                    <p>📞 <a href="tel:0978625499">0978625499</a></p>
-                    <p>⏰ Giờ làm việc: 8h00 - 18h00</p>
+                <div class="card-body px-4 py-4">
+                    <canvas id="appointmentsChart" height="250"></canvas>
                 </div>
-
-                <!-- Cột 3: Liên kết nhanh -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">LIÊN KẾT NHANH</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Chương trình Bác sĩ hợp tác</a></li>
-                        <li><a href="#">Chuyên khoa</a></li>
-                        <li><a href="#">Dịch vụ</a></li>
-                        <li><a href="#">Bệnh học</a></li>
-                    </ul>
-                </div>
-
-                <!-- Cột 4: Ứng dụng & Mạng xã hội -->
-                <div class="col-md-3 footer-col">
-                    <h5 class="footer-title">TẢI APP PHENIKAA MEC</h5>
-                    <div class="qr-box">
-                        <a href="#"><img src="{{ asset('img/qr.png') }}" alt="Facebook"></a>
-                    </div>
-
-                    <div class="social-icons">
-                        <a href="#"><img src="{{ asset('img/iconfb.webp') }}" alt="Facebook"></a>
-                        <a href="#"><img src="{{ asset('img/iconyoutube.webp') }}" alt="YouTube"></a>
-                        <a href="#"><img src="{{ asset('img/icontiktok.webp') }}" alt="TikTok"></a>
-                    </div>
-                </div>
-            </div>
-
-            <hr class="footer-divider">
-
-            <div class="text-center">
-                <p>&copy; {{ date('Y') }} thuộc về Bệnh viện Đại học Phenikaa</p>
-                <p><a href="#">Điều khoản sử dụng</a> | <a href="#">Chính sách bảo mật</a></p>
             </div>
         </div>
-    </footer>
+        <div class="col-lg-6">
+            <div class="card border shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">Biểu đồ Doanh thu (6 tháng qua)</h6>
+                </div>
+                <div class="card-body px-4 py-4">
+                    <canvas id="revenueChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <style>
-        /* Font chữ từ Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+    <!-- Main Dashboard Area -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">Hoạt động gần đây</h6>
+                </div>
+                <div class="card-body p-0">
+                    @if($recentAppointments->isEmpty())
+                        <div class="text-center text-secondary py-5">
+                            <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+                            <p class="mb-0">Chưa có lịch hẹn nào gần đây.</p>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary" style="font-size: 13px;">
+                                    <tr>
+                                        <th class="ps-4">Bệnh nhân</th>
+                                        <th>Bác sĩ</th>
+                                        <th>Thời gian</th>
+                                        <th>Trạng thái</th>
+                                        <th class="text-end pe-4">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($recentAppointments as $appointment)
+                                    <tr>
+                                        <td class="ps-4">
+                                            <p class="mb-0 text-dark fw-bold" style="font-size: 14px;">{{ optional($appointment->user)->name }}</p>
+                                            <small class="text-secondary opacity-75">{{ optional($appointment->user)->phone }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border px-2 py-1" style="font-weight: 500;">
+                                                {{ optional(optional($appointment->doctor)->user)->name ?? 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <p class="mb-0 text-dark" style="font-size: 14px;">{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('H:i') }}</p>
+                                            <small class="text-secondary">{{ \Carbon\Carbon::parse($appointment->appointment_date)->format('d/m/Y') }}</small>
+                                        </td>
+                                        <td>
+                                            @if($appointment->status == 'approved')
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1">Đã xác nhận</span>
+                                            @elseif($appointment->status == 'pending')
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1">Chờ xác nhận</span>
+                                            @elseif($appointment->status == 'rejected')
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1">Đã hủy</span>
+                                            @else
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1">Hoàn thành</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="{{ url('/admin/appointments?search=' . urlencode(optional($appointment->user)->name)) }}" class="btn btn-sm btn-light border text-primary">Xem</a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <h6 class="mb-0" style="color: #0056b3; font-weight: 600;">Yêu cầu cần xử lý</h6>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @if($pendingAppointmentsCount > 0)
+                        <a href="{{ url('/admin/appointments') }}" class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center justify-content-between text-decoration-none">
+                            <div class="d-flex align-items-center">
+                                <div class="text-warning me-3">
+                                    <i class="bi bi-clock-history fs-5"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 text-dark" style="font-size: 14px; font-weight: 500;">Lịch hẹn chờ xác nhận</p>
+                                </div>
+                            </div>
+                            <span class="badge bg-warning text-dark rounded-pill">{{ $pendingAppointmentsCount }}</span>
+                        </a>
+                        @endif
+                        <a href="{{ url('/admin/invoices') }}" class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center justify-content-between text-decoration-none">
+                            <div class="d-flex align-items-center">
+                                <div class="text-danger me-3">
+                                    <i class="bi bi-receipt fs-5"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 text-dark" style="font-size: 14px; font-weight: 500;">Hóa đơn chưa thanh toán</p>
+                                </div>
+                            </div>
+                            <span class="badge bg-danger rounded-pill">1</span>
+                        </a>
+                        <a href="{{ url('/admin/patients') }}" class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center justify-content-between text-decoration-none">
+                            <div class="d-flex align-items-center">
+                                <div class="text-primary me-3">
+                                    <i class="bi bi-person-lines-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <p class="mb-0 text-dark" style="font-size: 14px; font-weight: 500;">Hồ sơ bệnh nhân chưa hoàn thiện</p>
+                                </div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">2</span>
+                        </a>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-        /* Footer Styles */
-        .footer {
-            background-color: #b3e5fc;
-            color: #003366;
-            font-family: 'Poppins', sans-serif;
-            padding: 40px 10%;
-        }
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dữ liệu biểu đồ Lịch hẹn
+    const apptData = @json($appointmentsChartData);
+    const apptLabels = apptData.map(item => {
+        const d = new Date(item.date);
+        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    });
+    const apptCounts = apptData.map(item => item.count);
 
-        .footer-col {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .footer-logo img {
-            max-width: 180px;
-            /* Giới hạn kích thước logo */
-            display: block;
-            margin-bottom: 10px;
-            /* Tạo khoảng cách với nội dung */
-        }
-
-        .footer-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #0056b3;
-            margin-bottom: 12px;
-        }
-
-        .footer a {
-            color: #003366;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .footer a:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-
-        .footer p {
-            font-size: 14px;
-            font-weight: 400;
-        }
-
-        .footer .list-unstyled li {
-            margin-bottom: 6px;
-        }
-
-        .qr-box {
-            background: white;
-            padding: 10px;
-            text-align: center;
-            font-weight: 500;
-            border: 2px solid #003366;
-            border-radius: 5px;
-        }
-
-        /* Mạng xã hội */
-        .social-icons {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .social-icons img {
-            width: 30px;
-            height: 30px;
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .social-icons img:hover {
-            transform: scale(1.1);
-        }
-
-        .footer-divider {
-            margin: 20px 0;
-            border-top: 1px solid #0056b3;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .footer .row {
-                text-align: center;
+    const ctxAppt = document.getElementById('appointmentsChart').getContext('2d');
+    new Chart(ctxAppt, {
+        type: 'bar',
+        data: {
+            labels: apptLabels.length > 0 ? apptLabels : ['Chưa có dữ liệu'],
+            datasets: [{
+                label: 'Số lịch hẹn',
+                data: apptCounts.length > 0 ? apptCounts : [0],
+                backgroundColor: '#0d6efd',
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            },
+            plugins: {
+                legend: { display: false }
             }
-
-            .footer-col {
-                align-items: center;
-            }
-
-
         }
-    </style>
+    });
 
+    // Dữ liệu biểu đồ Doanh thu
+    const revData = @json($revenueChartData);
+    const revLabels = revData.map(item => `Tháng ${item.month}/${item.year}`);
+    const revTotals = revData.map(item => item.total);
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
-
-</body>
-
-</html>
+    const ctxRev = document.getElementById('revenueChart').getContext('2d');
+    new Chart(ctxRev, {
+        type: 'line',
+        data: {
+            labels: revLabels.length > 0 ? revLabels : ['Chưa có dữ liệu'],
+            datasets: [{
+                label: 'Doanh thu (VNĐ)',
+                data: revTotals.length > 0 ? revTotals : [0],
+                borderColor: '#198754',
+                backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#198754'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+});
+</script>
+@endpush
+@endsection

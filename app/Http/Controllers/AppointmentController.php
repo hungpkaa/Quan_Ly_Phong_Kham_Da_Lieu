@@ -30,39 +30,52 @@ class AppointmentController extends Controller
             'description' => 'nullable|string|max:500',
         ]);
 
-        Appointment::create([
-            'user_id' => Auth::check() && Auth::user()->role === 'patient' ? Auth::id() : null,
-            'doctor_id' => $request->doctor_id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
+        $user = Auth::check() && Auth::user()->role === 'patient' 
+            ? Auth::user() 
+            : \App\Models\User::firstOrCreate(
+                ['phone' => $request->phone],
+                [
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                    'role' => 'patient'
+                ]
+            );
+
+        // Update user info if missing or changed
+        $user->update([
             'age' => $request->age,
             'cccd' => $request->cccd,
+        ]);
+
+        Appointment::create([
+            'user_id' => $user->id,
+            'doctor_id' => $request->doctor_id,
             'appointment_date' => $request->appointment_date,
             'shift' => $request->shift,
             'description' => $request->description,
             'status' => 'pending',
         ]);
 
-        return redirect()->route('appointments.create')->with('success', 'Dat lich thanh cong. Cho duyet!');
+        return redirect()->route('appointments.create')->with('success', 'Đặt lịch khám thành công! Vui lòng chờ phòng khám xác nhận duyệt lịch.');
     }
 
     public function searchAppointments(Request $request)
     {
-        $doctor = Doctor::where('email', Auth::user()->email)->first();
+        $doctor = Auth::user()->doctor;
 
         if (!$doctor) {
-            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+            return redirect()->route('home')->with('error', 'Không tìm thấy thông tin bác sĩ.');
         }
 
         $query = $request->input('query');
 
         $appointments = Appointment::where('doctor_id', $doctor->id)
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'LIKE', "%$query%")
-                    ->orWhere('appointment_date', 'LIKE', "%$query%")
-                    ->orWhere('status', 'LIKE', "%$query%");
+            ->whereHas('user', function ($q) use ($query) {
+                $q->where('name', 'LIKE', "%$query%");
             })
+            ->orWhere('appointment_date', 'LIKE', "%$query%")
+            ->orWhere('status', 'LIKE', "%$query%")
             ->orderBy('appointment_date', 'asc')
             ->get();
 

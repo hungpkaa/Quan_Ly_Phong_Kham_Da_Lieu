@@ -137,15 +137,15 @@
                 </tr>
                 <tr>
                     <td><strong>Tên Bệnh Nhân:</strong></td>
-                    <td>{{ $invoice->patient_name }}</td>
+                    <td>{{ optional(optional($invoice->medicalRecord)->user)->name }}</td>
                 </tr>
                 <tr>
                     <td><strong>Ngày Khám:</strong></td>
-                    <td>{{ $invoice->exam_date }}</td>
+                    <td>{{ optional($invoice->medicalRecord)->exam_date }}</td>
                 </tr>
                 <tr>
                     <td><strong>Số Điện Thoại:</strong></td>
-                    <td>{{ $invoice->phone }}</td>
+                    <td>{{ optional(optional($invoice->medicalRecord)->user)->phone }}</td>
                 </tr>
                 <tr>
                     <td class="service-title">Dịch Vụ:</td>

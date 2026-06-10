@@ -11,7 +11,7 @@ class DoctorController extends Controller
 {
     private function currentDoctor()
     {
-        return Doctor::where('email', Auth::user()->email)->first();
+        return Auth::user()->doctor;
     }
 
     public function index()
@@ -30,7 +30,7 @@ class DoctorController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:doctors',
+            'email' => 'required|string|email|unique:users',
             'password' => 'required|string|min:8',
             'specialty' => 'required|string',
             'working_hours' => 'required|array',
@@ -38,38 +38,51 @@ class DoctorController extends Controller
             'working_hours.*.shift' => 'required|in:morning,afternoon'
         ]);
 
-        Doctor::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
-            'specialty' => $request->specialty,
-            'working_hours' => $request->working_hours,
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+            $user = \App\Models\User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => bcrypt($request->password),
+                'role' => 'admindoctor',
+            ]);
 
-        return redirect()->back()->with('success', 'Bac si da duoc them thanh cong!');
+            Doctor::create([
+                'user_id' => $user->id,
+                'specialty' => $request->specialty,
+                'working_hours' => $request->working_hours,
+            ]);
+        });
+
+        return redirect()->back()->with('success', 'Bác sĩ đã được thêm thành công!');
     }
 
     public function update(Request $request, $id)
     {
         $doctor = Doctor::findOrFail($id);
+        $user = $doctor->user;
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:doctors,email,' . $id,
+            'email' => 'required|string|email|unique:users,email,' . ($user ? $user->id : ''),
             'specialty' => 'required|string',
             'working_hours' => 'nullable|array',
             'working_hours.*.day' => 'required_with:working_hours|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'working_hours.*.shift' => 'required_with:working_hours|in:morning,afternoon',
         ]);
 
+        if ($user) {
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+            ]);
+        }
+
         $doctor->update([
-            'name' => $request->name,
-            'email' => $request->email,
             'specialty' => $request->specialty,
             'working_hours' => $request->has('working_hours') ? $request->working_hours : $doctor->working_hours,
         ]);
 
-        return redirect()->back()->with('success', 'Bac si da duoc cap nhat thanh cong!');
+        return redirect()->back()->with('success', 'Bác sĩ đã được cập nhật thành công!');
     }
 
     public function destroy($id)
@@ -77,13 +90,19 @@ class DoctorController extends Controller
         $doctor = Doctor::findOrFail($id);
         $doctor->delete();
 
-        return redirect()->back()->with('success', 'Bac si da duoc xoa thanh cong!');
+        return redirect()->back()->with('success', 'Bác sĩ đã được xóa thành công!');
     }
 
     public function getDoctorsBySpecialty($specialty)
     {
-        $doctors = Doctor::where('specialty', $specialty)->get(['id', 'name']);
-        return response()->json($doctors);
+        $doctors = Doctor::with('user')->where('specialty', $specialty)->get();
+        $formattedDoctors = $doctors->map(function($doc) {
+            return [
+                'id' => $doc->id,
+                'name' => $doc->user ? $doc->user->name : 'Unknown',
+            ];
+        });
+        return response()->json($formattedDoctors);
     }
 
     public function showDashboard()
@@ -91,7 +110,7 @@ class DoctorController extends Controller
         $doctor = $this->currentDoctor();
 
         if (!$doctor) {
-            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+            return redirect()->route('home')->with('error', 'Không tìm thấy thông tin bác sĩ.');
         }
 
         return view('role.admindoctor', compact('doctor'));
@@ -100,16 +119,16 @@ class DoctorController extends Controller
     public function showSchedule()
     {
         if (Auth::user()->role !== 'admindoctor') {
-            return redirect()->route('home')->with('error', 'Ban khong co quyen truy cap trang nay.');
+            return redirect()->route('home')->with('error', 'Bạn không có quyền truy cập trang này.');
         }
 
         $doctor = $this->currentDoctor();
 
         if (!$doctor) {
-            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+            return redirect()->route('home')->with('error', 'Không tìm thấy thông tin bác sĩ.');
         }
 
-        $appointments = Appointment::with(['patient', 'doctor'])
+        $appointments = Appointment::with(['user', 'doctor'])
             ->where('doctor_id', $doctor->id)
             ->orderBy('appointment_date', 'asc')
             ->get();
@@ -121,7 +140,9 @@ class DoctorController extends Controller
     {
         $query = $request->input('query');
 
-        $doctors = Doctor::where('name', 'like', '%' . $query . '%')
+        $doctors = Doctor::whereHas('user', function($q) use ($query) {
+                $q->where('name', 'like', '%' . $query . '%');
+            })
             ->orWhere('specialty', 'like', '%' . $query . '%')
             ->get();
 
@@ -133,11 +154,11 @@ class DoctorController extends Controller
         $doctor = $this->currentDoctor();
 
         if (!$doctor) {
-            return redirect()->route('home')->with('error', 'Khong tim thay thong tin bac si.');
+            return redirect()->route('home')->with('error', 'Không tìm thấy thông tin bác sĩ.');
         }
 
         $patients = Appointment::where('doctor_id', $doctor->id)
-            ->with('patient')
+            ->with('user')
             ->get();
 
         return view('role.patients', compact('patients'));

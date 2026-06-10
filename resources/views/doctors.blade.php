@@ -33,7 +33,7 @@
 
                 <div class="row justify-content-center">
                     @foreach($doctors as $doctor)
-                            <div class="col-lg-4 col-md-6 mb-4 doctor-card" data-name="{{ Str::ascii(Str::lower($doctor->name)) }}"
+                            <div class="col-lg-4 col-md-6 mb-4 doctor-card" data-name="{{ Str::ascii(Str::lower(optional($doctor->user)->name)) }}"
                                 data-specialty="{{ Str::ascii(Str::lower($doctor->specialty)) }}">
                                 <div class="card shadow-lg border-0 rounded-lg">
                                     <div class="card-body text-center p-4">
@@ -41,18 +41,18 @@
                                         <div class="d-flex flex-column align-items-center">
                                             <img src="{{ asset($doctor->image) }}" class="rounded-circle mb-3"
                                                 style="width: 150px; height: 150px; object-fit: cover; border: 5px solid #007bff;"
-                                                alt="{{ $doctor->name }}">
+                                                alt="{{ optional($doctor->user)->name }}">
                                         </div>
 
                                         <!-- Thông tin bác sĩ -->
-                                        <h4 class="doctor-name">{{ $doctor->name }}</h4>
+                                        <h4 class="doctor-name">{{ optional($doctor->user)->name }}</h4>
                                         <p class="doctor-specialty">Chuyên khoa: {{ $doctor->specialty }}</p>
 
                                         <hr class="doctor-divider">
 
                                         <div class="text-start mx-auto px-3 py-2 rounded info-box" style="max-width: 450px;">
-                                            <p class="mb-2"><strong>Email:</strong> {{ $doctor->email }}</p>
-                                            <p class="mb-2"><strong>Số điện thoại:</strong> {{ $doctor->phone }}</p>
+                                            <p class="mb-2"><strong>Email:</strong> {{ optional($doctor->user)->email }}</p>
+                                            <p class="mb-2"><strong>Số điện thoại:</strong> {{ optional($doctor->user)->phone }}</p>
                                             <p class="mb-2"><strong>Giờ làm việc:</strong></p>
                                             @php
                                                 $workingHours = is_array($doctor->working_hours) ? $doctor->working_hours :
