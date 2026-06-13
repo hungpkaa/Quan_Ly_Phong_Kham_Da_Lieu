@@ -26,10 +26,18 @@ class AppointmentController extends Controller
             'phone' => 'required|string',
             'age' => 'required|integer|min:1',
             'cccd' => 'required|string|max:20',
+            'specialty' => 'required|string|max:255',
             'appointment_date' => 'required|date|after_or_equal:today',
             'shift' => 'required|in:morning,afternoon',
             'description' => 'nullable|string|max:500',
         ]);
+
+        $doctor = Doctor::findOrFail($request->doctor_id);
+        if (trim($doctor->specialty) !== trim($request->specialty)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Bác sĩ đã chọn không thuộc chuyên khoa/dịch vụ này. Vui lòng chọn lại bác sĩ phù hợp.');
+        }
 
         $slotService = app(AvailableSlotService::class);
         $slotError = $this->appointmentSlotError(
@@ -92,7 +100,8 @@ class AppointmentController extends Controller
 
         Appointment::create([
             'user_id' => $user->id,
-            'doctor_id' => $request->doctor_id,
+            'doctor_id' => $doctor->id,
+            'specialty' => $doctor->specialty,
             'appointment_date' => $request->appointment_date,
             'shift' => $request->shift,
             'description' => $request->description,

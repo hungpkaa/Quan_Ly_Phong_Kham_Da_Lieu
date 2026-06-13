@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\Models\DoctorSchedule;
 use Illuminate\Support\Facades\DB;
 use App\Services\Appointments\AvailableSlotService;
+use Illuminate\Validation\ValidationException;
 
 class AdminController extends Controller
 {
@@ -123,7 +124,7 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:doctors|unique:users',
             'password' => 'required|string|min:6',
-            'specialty' => 'required|string',
+            'specialty' => 'required|string|max:255',
             'phone' => 'required|string',
             'bio' => 'nullable|string',
             'image' => 'nullable|file|max:5120|mimes:jpeg,png,jpg,gif', // Giống như dịch vụ
@@ -353,23 +354,125 @@ class AdminController extends Controller
     }
 
     // 📌 Thêm lịch hẹn mới
+    private function ensureDoctorMatchesSpecialty(Doctor $doctor, string $specialty): void
+    {
+        if (trim($doctor->specialty) !== trim($specialty)) {
+            throw ValidationException::withMessages([
+                'specialty' => 'Bác sĩ đã chọn không thuộc chuyên khoa/dịch vụ này. Vui lòng chọn lại bác sĩ phù hợp.',
+            ]);
+        }
+    }
+
+    private function patientForNewAdminAppointment(Request $request): User
+    {
+        $phone = trim((string) $request->phone);
+        $email = trim((string) $request->email);
+
+        $userByPhone = User::where('phone', $phone)->first();
+        $userByEmail = User::where('email', $email)->first();
+
+        if ($userByPhone && $userByPhone->role !== 'patient') {
+            throw ValidationException::withMessages([
+                'phone' => 'Số điện thoại này đang thuộc tài khoản không phải bệnh nhân. Vui lòng dùng số điện thoại khác.',
+            ]);
+        }
+
+        if ($userByEmail && $userByEmail->role !== 'patient') {
+            throw ValidationException::withMessages([
+                'email' => 'Email này đang thuộc tài khoản không phải bệnh nhân. Vui lòng dùng email khác.',
+            ]);
+        }
+
+        if ($userByPhone && $userByEmail && $userByPhone->id !== $userByEmail->id) {
+            throw ValidationException::withMessages([
+                'email' => 'Email này đang thuộc một bệnh nhân khác. Vui lòng kiểm tra lại thông tin bệnh nhân.',
+            ]);
+        }
+
+        $user = $userByPhone ?: $userByEmail;
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $email,
+                'phone' => $phone,
+                'age' => $request->age,
+                'cccd' => $request->cccd,
+                'password' => Hash::make('12345678'),
+                'role' => 'patient',
+            ]);
+        }
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $email,
+            'phone' => $phone,
+            'age' => $request->age,
+            'cccd' => $request->cccd,
+        ]);
+
+        return $user;
+    }
+
+    private function updatePatientForAdminAppointment(Appointment $appointment, Request $request): User
+    {
+        if (!$appointment->user) {
+            return $this->patientForNewAdminAppointment($request);
+        }
+
+        $user = $appointment->user;
+        $phone = trim((string) $request->phone);
+        $email = trim((string) $request->email);
+
+        if ($user->role !== 'patient') {
+            throw ValidationException::withMessages([
+                'phone' => 'Lịch hẹn này đang gắn với tài khoản không phải bệnh nhân. Vui lòng kiểm tra lại dữ liệu.',
+            ]);
+        }
+
+        $phoneOwner = User::where('phone', $phone)->where('id', '!=', $user->id)->first();
+        if ($phoneOwner) {
+            throw ValidationException::withMessages([
+                'phone' => 'Số điện thoại này đang thuộc một tài khoản khác. Vui lòng kiểm tra lại thông tin bệnh nhân.',
+            ]);
+        }
+
+        $emailOwner = User::where('email', $email)->where('id', '!=', $user->id)->first();
+        if ($emailOwner) {
+            throw ValidationException::withMessages([
+                'email' => 'Email này đang thuộc một tài khoản khác. Vui lòng kiểm tra lại thông tin bệnh nhân.',
+            ]);
+        }
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $email,
+            'phone' => $phone,
+            'age' => $request->age,
+            'cccd' => $request->cccd,
+        ]);
+
+        return $user;
+    }
+
     public function storeAppointment(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'phone' => 'required|string',
-            'age' => 'required|integer',
-            'cccd' => 'required|string',
+            'age' => 'required|integer|min:1',
+            'cccd' => 'required|string|max:20',
             'appointment_date' => 'required|date',
             'shift' => 'required|in:morning,afternoon',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:500',
             'doctor_id' => 'required|exists:doctors,id',
-            'specialty' => 'required|string',
+            'specialty' => 'required|string|max:255',
         ]);
 
         // Kiểm tra bác sĩ
-        $doctor = Doctor::find($request->doctor_id);
+        $doctor = Doctor::findOrFail($request->doctor_id);
+        $this->ensureDoctorMatchesSpecialty($doctor, $request->specialty);
         if (!$doctor) {
             return back()->with('error', 'Bác sĩ không tồn tại');
         }
@@ -384,33 +487,24 @@ class AdminController extends Controller
         // } // Admin can optionally book for past dates if they want, but let's keep it restricted?
         // Actually the user just complained about double booking, so we definitely need isSlotAvailable.
 
+        if (!$slotService->isShiftStillBookable($request->appointment_date, $request->shift)) {
+            return back()->withInput()->with('error', 'Ca khám đã qua hoặc không còn nhận đặt lịch.');
+        }
+
         if (!$slotService->isSlotAvailable($doctor->id, $request->appointment_date, $request->shift)) {
             return back()->withInput()->with('error', 'Ca khám này đã có người đặt. Vui lòng chọn lịch trống khác.');
         }
 
-        $user = \App\Models\User::firstOrCreate(
-            ['phone' => $request->phone],
-            [
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
-                'role' => 'patient'
-            ]
-        );
-
-        $user->update([
-            'age' => $request->age,
-            'cccd' => $request->cccd,
-        ]);
+        $user = $this->patientForNewAdminAppointment($request);
 
         // Tạo lịch hẹn mới
         Appointment::create([
             'user_id' => $user->id,
+            'doctor_id' => $doctor->id,
+            'specialty' => $doctor->specialty,
             'appointment_date' => $request->appointment_date,
             'shift' => $request->shift,
             'description' => $request->description,
-            'doctor_id' => $doctor->id,
-            'specialty' => $request->specialty,
             'status' => 'approved',
         ]);
 
@@ -426,43 +520,47 @@ class AdminController extends Controller
         $appointment = Appointment::findOrFail($id);
 
         $request->validate([
-            'specialty' => 'required|string',
+            'specialty' => 'required|string|max:255',
             'doctor_id' => 'required|exists:doctors,id',
             'appointment_date' => 'required|date',
             'shift' => 'required|in:morning,afternoon',
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'phone' => 'required|string',
-            'age' => 'required|integer',
-            'cccd' => 'required|string',
-            'description' => 'nullable|string',
+            'age' => 'required|integer|min:1',
+            'cccd' => 'required|string|max:20',
+            'description' => 'nullable|string|max:500',
         ]);
 
+        $doctor = Doctor::findOrFail($request->doctor_id);
+        $this->ensureDoctorMatchesSpecialty($doctor, $request->specialty);
+
+        $slotChanged = (int) $appointment->doctor_id !== (int) $request->doctor_id
+            || $appointment->appointment_date !== $request->appointment_date
+            || $appointment->shift !== $request->shift;
+
         $slotService = app(AvailableSlotService::class);
-        if (!$slotService->doctorWorksOnShift($request->doctor_id, $request->appointment_date, $request->shift)) {
+        if ($slotChanged && !$slotService->doctorWorksOnShift($request->doctor_id, $request->appointment_date, $request->shift)) {
             return back()->withInput()->with('error', 'Bác sĩ không có lịch làm việc trong ngày và ca khám đã chọn.');
         }
 
-        if (!$slotService->isSlotAvailable($request->doctor_id, $request->appointment_date, $request->shift, $id)) {
+        if ($slotChanged && !$slotService->isShiftStillBookable($request->appointment_date, $request->shift)) {
+            return back()->withInput()->with('error', 'Ca khám đã qua hoặc không còn nhận đặt lịch.');
+        }
+
+        if ($slotChanged && !$slotService->isSlotAvailable($request->doctor_id, $request->appointment_date, $request->shift, $id)) {
             return back()->withInput()->with('error', 'Ca khám này đã có người đặt. Vui lòng chọn lịch trống khác.');
         }
 
-        if ($appointment->user) {
-            $appointment->user->update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'age' => $request->age,
-                'cccd' => $request->cccd,
-            ]);
-        }
+        $user = $this->updatePatientForAdminAppointment($appointment, $request);
 
         $appointment->update([
+            'user_id' => $user->id,
             'doctor_id' => $request->doctor_id,
+            'specialty' => $doctor->specialty,
             'appointment_date' => $request->appointment_date,
             'shift' => $request->shift,
             'description' => $request->description,
-            'specialty' => $request->specialty,
         ]);
 
         return redirect()->route('admin.appointments.index')->with('success', 'Lịch hẹn đã được cập nhật.');

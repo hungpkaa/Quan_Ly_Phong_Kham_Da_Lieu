@@ -60,6 +60,10 @@ class AiBookingService
                 $appointmentData['source'] = 'ai_auto';
             }
 
+            if (Schema::hasColumn('appointments', 'specialty')) {
+                $appointmentData['specialty'] = $doctor->specialty;
+            }
+
             return Appointment::create($appointmentData)->load('doctor.user', 'user');
         });
     }
