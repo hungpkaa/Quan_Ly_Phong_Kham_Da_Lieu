@@ -184,6 +184,9 @@
                 @if($isEditing)
                     @method('PUT')
                 @endif
+                @if(!$isEditing && isset($editMedicalRecord) && $editMedicalRecord?->appointment_id)
+                    <input type="hidden" name="appointment_id" value="{{ old('appointment_id', $editMedicalRecord->appointment_id) }}">
+                @endif
                 <div class="modal-body p-4">
                     <div class="row g-4">
                         <!-- Thông tin cá nhân -->

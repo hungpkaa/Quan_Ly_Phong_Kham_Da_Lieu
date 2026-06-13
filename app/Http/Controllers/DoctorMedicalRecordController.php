@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\MedicalRecord;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -56,7 +57,31 @@ class DoctorMedicalRecordController extends Controller
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
             'follow_up_date' => 'nullable|date',
+            'appointment_id' => 'nullable|exists:appointments,id',
         ]);
+
+        $doctorId = $this->currentDoctor()->id;
+        $appointment = null;
+
+        if ($request->filled('appointment_id')) {
+            $appointment = Appointment::with('medicalRecord')
+                ->where('doctor_id', $doctorId)
+                ->findOrFail($request->appointment_id);
+
+            if ($appointment->status !== 'approved') {
+                return back()->withInput()->with('error', 'Chỉ có thể tạo hồ sơ bệnh án cho lịch hẹn đã được duyệt.');
+            }
+
+            if ($appointment->medicalRecord) {
+                return redirect()
+                    ->route('admindoctor.medicalrecords.index', ['edit_id' => $appointment->medicalRecord->id])
+                    ->with('error', 'Lịch hẹn này đã có hồ sơ bệnh án, không thể tạo thêm hồ sơ mới.');
+            }
+
+            if (!$this->canCreateRecordForAppointment($appointment)) {
+                return back()->withInput()->with('error', 'Chưa đến thời gian khám, vui lòng tạo hồ sơ bệnh án sau khi ca khám bắt đầu.');
+            }
+        }
 
         $cost = $request->filled('cost') ? $request->input('cost') * 1000 : null;
 
@@ -89,8 +114,9 @@ class DoctorMedicalRecordController extends Controller
         }
 
         $record = MedicalRecord::create([
-            'doctor_id' => $this->currentDoctor()->id,
+            'doctor_id' => $doctorId,
             'user_id' => $user->id,
+            'appointment_id' => $appointment?->id,
             'service' => $request->service,
             'exam_date' => $request->exam_date,
             'cost' => $cost,
@@ -101,13 +127,15 @@ class DoctorMedicalRecordController extends Controller
             'follow_up_date' => $request->follow_up_date,
         ]);
 
-        \App\Models\Invoice::create([
-            'medical_record_id' => $record->id,
-            'services_medicines' => $record->service . ($record->prescription ? "; " . $record->prescription : ""),
-            'invoice_date' => now()->format('Y-m-d'),
-            'total_amount' => $cost ?? 0,
-            'status' => 'unpaid',
-        ]);
+        if ($cost && $cost > 0) {
+            \App\Models\Invoice::create([
+                'medical_record_id' => $record->id,
+                'services_medicines' => $record->service . ($record->prescription ? "; " . $record->prescription : ""),
+                'invoice_date' => now()->format('Y-m-d'),
+                'total_amount' => $cost,
+                'status' => 'unpaid',
+            ]);
+        }
 
         return redirect()->route('admindoctor.medicalrecords.index')
             ->with('success', 'Hồ sơ bệnh án đã được tạo thành công.');
@@ -187,10 +215,29 @@ class DoctorMedicalRecordController extends Controller
     public function createFromAppointment(Request $request)
     {
         $doctorId = $this->currentDoctor()->id;
-        $appointment = Appointment::with('user')->where('doctor_id', $doctorId)
+        $appointment = Appointment::with(['user', 'doctor', 'medicalRecord'])->where('doctor_id', $doctorId)
             ->findOrFail($request->input('appointment_id'));
 
+        if ($appointment->status !== 'approved') {
+            return redirect()
+                ->route('doctor.schedule')
+                ->with('error', 'Chỉ có thể tạo hồ sơ bệnh án cho lịch hẹn đã được duyệt.');
+        }
+
+        if ($appointment->medicalRecord) {
+            return redirect()
+                ->route('admindoctor.medicalrecords.index', ['edit_id' => $appointment->medicalRecord->id])
+                ->with('error', 'Lịch hẹn này đã có hồ sơ bệnh án, hệ thống đã mở hồ sơ hiện có.');
+        }
+
+        if (!$this->canCreateRecordForAppointment($appointment)) {
+            return redirect()
+                ->route('doctor.schedule')
+                ->with('error', 'Chưa đến thời gian khám, vui lòng tạo hồ sơ bệnh án sau khi ca khám bắt đầu.');
+        }
+
         $editMedicalRecord = new MedicalRecord([
+            'appointment_id' => $appointment->id,
             'exam_date' => $appointment->appointment_date,
             'service' => $appointment->specialty ?: ('Khám ' . ($appointment->doctor && $appointment->doctor->specialty ? mb_strtolower($appointment->doctor->specialty, 'UTF-8') : 'da liễu')),
         ]);
@@ -205,5 +252,21 @@ class DoctorMedicalRecordController extends Controller
         $search = null;
 
         return view('role.doctormanagemedicalrecords', compact('editMedicalRecord', 'medicalRecords', 'search'));
+    }
+
+    private function canCreateRecordForAppointment(Appointment $appointment): bool
+    {
+        return Carbon::now()->greaterThanOrEqualTo($this->recordOpeningTime($appointment));
+    }
+
+    private function recordOpeningTime(Appointment $appointment): Carbon
+    {
+        $date = Carbon::parse($appointment->appointment_date);
+
+        return match ($appointment->shift) {
+            'morning' => $date->setTime(8, 0),
+            'afternoon' => $date->setTime(14, 0),
+            default => $date->startOfDay(),
+        };
     }
 }

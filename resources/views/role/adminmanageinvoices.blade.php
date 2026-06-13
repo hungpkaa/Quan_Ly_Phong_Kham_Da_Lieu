@@ -11,11 +11,13 @@
                 <h3 class="mb-1" style="color: #0056b3; font-weight: 600;">Hóa Đơn & Thống Kê</h3>
                 <p class="text-secondary mb-0">Theo dõi doanh thu và quản lý các hóa đơn khám chữa bệnh.</p>
             </div>
+            @if(false)
             <div>
-                <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium" data-bs-toggle="modal" data-bs-target="#addInvoiceModal">
+                <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm fw-medium" id="scrollToPendingInvoices">
                     <i class="bi bi-plus-lg me-1"></i> Lập Hóa Đơn
                 </button>
             </div>
+            @endif
         </div>
     </div>
 
@@ -97,7 +99,7 @@
     </div>
 
     <!-- Danh sách Hồ Sơ Chờ Lập Hóa Đơn -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 border-warning">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 border-warning" id="pendingInvoiceRecords">
         <div class="card-header bg-warning bg-opacity-10 border-bottom py-3 px-4 rounded-top-4 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 text-warning-emphasis fw-bold">
                 <i class="bi bi-clock-history me-2"></i> Hồ Sơ Chờ Lập Hóa Đơn
@@ -106,7 +108,10 @@
         <div class="card-body p-0">
             @if($unpaidRecords->isEmpty())
                 <div class="text-center py-4">
+                    <p class="mb-0 text-secondary">Tất cả hồ sơ bệnh án hiện đã có hóa đơn.</p>
+                    @if(false)
                     <p class="mb-0 text-secondary">Tuyệt vời! Tất cả hồ sơ đã được thanh toán.</p>
+                    @endif
                 </div>
             @else
                 <div class="table-responsive">
@@ -331,6 +336,17 @@
 @push('scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const scrollToPendingButton = document.getElementById('scrollToPendingInvoices');
+        if (scrollToPendingButton) {
+            scrollToPendingButton.innerHTML = '<i class="bi bi-arrow-down-circle me-1"></i> Xem Hồ Sơ Chờ';
+            scrollToPendingButton.addEventListener('click', function () {
+                document.getElementById('pendingInvoiceRecords')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            });
+        }
+
         // Auto select medical record in Add Invoice Modal
         document.querySelectorAll('.create-invoice-btn').forEach(button => {
             button.addEventListener('click', function() {

@@ -11,7 +11,8 @@ class AdminInvoiceController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Invoice::with('medicalRecord.user');
+        $query = Invoice::with('medicalRecord.user')
+            ->where('total_amount', '>', 0);
         $search = trim((string) $request->input('search', ''));
 
         if ($search !== '') {
@@ -34,13 +35,19 @@ class AdminInvoiceController extends Controller
 
         $invoices = $query->latest()->get();
 
-        $totalInvoices = Invoice::count();
+        $totalInvoices = Invoice::where('total_amount', '>', 0)->count();
         $totalMedicalRecords = MedicalRecord::count();
         $totalDoctors = Doctor::count();
         $totalRevenue = Invoice::whereIn('status', Invoice::paidStatusValues())->sum('total_amount');
 
-        $medicalRecords = MedicalRecord::with('user')
-            ->doesntHave('invoice')
+        $medicalRecords = MedicalRecord::with(['user', 'invoice'])
+            ->where(function ($recordQuery) {
+                $recordQuery
+                    ->doesntHave('invoice')
+                    ->orWhereHas('invoice', function ($invoiceQuery) {
+                        $invoiceQuery->where('total_amount', '<=', 0);
+                    });
+            })
             ->latest()
             ->get();
 
@@ -78,19 +85,28 @@ class AdminInvoiceController extends Controller
         }
 
         $medicalRecord = MedicalRecord::with('invoice')->findOrFail($request->medical_record_id);
-        if ($medicalRecord->invoice) {
+        $invoice = $medicalRecord->invoice;
+
+        if ($invoice && !$this->isDraftInvoice($invoice)) {
             return back()
                 ->withInput()
-                ->with('error', 'Hồ sơ bệnh án này đã có hóa đơn. Vui lòng chỉnh sửa hóa đơn hiện có thay vì lập hóa đơn mới.');
+                ->with('error', 'Hồ sơ bệnh án này đã có hóa đơn hợp lệ. Vui lòng chỉnh sửa hóa đơn hiện có thay vì lập hóa đơn mới.');
         }
 
-        Invoice::create([
-            'medical_record_id' => $medicalRecord->id,
+        $invoiceData = [
             'services_medicines' => $this->servicesMedicinesText($medicalRecord),
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,
             'status' => $status,
-        ]);
+        ];
+
+        if ($invoice) {
+            $invoice->update($invoiceData);
+        } else {
+            Invoice::create($invoiceData + [
+                'medical_record_id' => $medicalRecord->id,
+            ]);
+        }
 
         $medicalRecord->update([
             'cost' => $request->total_amount,
@@ -169,5 +185,10 @@ class AdminInvoiceController extends Controller
         return collect([$medicalRecord->service, $medicalRecord->prescription])
             ->filter(fn ($value) => trim((string) $value) !== '')
             ->implode('; ');
+    }
+
+    private function isDraftInvoice(Invoice $invoice): bool
+    {
+        return (float) $invoice->total_amount <= 0;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Doctor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -116,7 +117,7 @@ class DoctorController extends Controller
         return view('role.admindoctor', compact('doctor'));
     }
 
-    public function showSchedule()
+    public function showSchedule(Request $request)
     {
         if (Auth::user()->role !== 'admindoctor') {
             return redirect()->route('home')->with('error', 'Bạn không có quyền truy cập trang này.');
@@ -128,12 +129,81 @@ class DoctorController extends Controller
             return redirect()->route('home')->with('error', 'Không tìm thấy thông tin bác sĩ.');
         }
 
-        $appointments = Appointment::with(['user', 'doctor'])
+        $allowedFilters = ['today', 'needs_record', 'upcoming', 'completed', 'all'];
+        $filter = $request->input('filter', 'today');
+        $filter = in_array($filter, $allowedFilters, true) ? $filter : 'today';
+        $search = trim((string) $request->input('query', ''));
+        $today = Carbon::today()->toDateString();
+
+        $baseQuery = Appointment::with(['user', 'doctor', 'medicalRecord'])
             ->where('doctor_id', $doctor->id)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($appointmentQuery) use ($search) {
+                    $appointmentQuery->whereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'LIKE', "%{$search}%")
+                            ->orWhere('phone', 'LIKE', "%{$search}%");
+                    })
+                    ->orWhere('appointment_date', 'LIKE', "%{$search}%")
+                    ->orWhere('status', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+                });
+            });
+
+        $filterStats = [
+            'today' => (clone $baseQuery)
+                ->whereDate('appointment_date', $today)
+                ->whereDoesntHave('medicalRecord')
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected'])
+                ->count(),
+            'needs_record' => (clone $baseQuery)
+                ->where('status', 'approved')
+                ->whereDate('appointment_date', '<=', $today)
+                ->whereDoesntHave('medicalRecord')
+                ->count(),
+            'upcoming' => (clone $baseQuery)
+                ->whereDate('appointment_date', '>', $today)
+                ->whereDoesntHave('medicalRecord')
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected'])
+                ->count(),
+            'completed' => (clone $baseQuery)
+                ->where(function ($query) {
+                    $query->where('status', 'completed')
+                        ->orWhereHas('medicalRecord');
+                })
+                ->count(),
+            'all' => (clone $baseQuery)->count(),
+        ];
+
+        $appointmentsQuery = clone $baseQuery;
+
+        match ($filter) {
+            'needs_record' => $appointmentsQuery
+                ->where('status', 'approved')
+                ->whereDate('appointment_date', '<=', $today)
+                ->whereDoesntHave('medicalRecord'),
+            'upcoming' => $appointmentsQuery
+                ->whereDate('appointment_date', '>', $today)
+                ->whereDoesntHave('medicalRecord')
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected']),
+            'completed' => $appointmentsQuery
+                ->where(function ($query) {
+                    $query->where('status', 'completed')
+                        ->orWhereHas('medicalRecord');
+                }),
+            'all' => $appointmentsQuery,
+            default => $appointmentsQuery
+                ->whereDate('appointment_date', $today)
+                ->whereDoesntHave('medicalRecord')
+                ->whereNotIn('status', ['completed', 'cancelled', 'rejected']),
+        };
+
+        $appointments = $appointmentsQuery
             ->orderBy('appointment_date', 'asc')
+            ->orderByRaw("CASE WHEN shift = 'morning' THEN 0 WHEN shift = 'afternoon' THEN 1 ELSE 2 END")
+            ->orderBy('id', 'asc')
             ->get();
 
-        return view('role.schedule', compact('appointments'));
+        return view('role.schedule', compact('appointments', 'filter', 'search', 'filterStats'));
     }
 
     public function search_doctors_list(Request $request)

@@ -135,6 +135,11 @@ class AppointmentController extends Controller
 
     public function searchAppointments(Request $request)
     {
+        return redirect()->route('doctor.schedule', [
+            'filter' => $request->input('filter', 'today'),
+            'query' => $request->input('query'),
+        ]);
+
         $doctor = Auth::user()->doctor;
 
         if (!$doctor) {

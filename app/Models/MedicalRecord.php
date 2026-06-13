@@ -18,6 +18,7 @@ class MedicalRecord extends Model
 
     protected $fillable = [
         'doctor_id',
+        'appointment_id',
         'service',
         'exam_date',
         'cost',
@@ -37,5 +38,10 @@ class MedicalRecord extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class);
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class);
     }
 }
