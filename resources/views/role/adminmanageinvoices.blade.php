@@ -137,7 +137,8 @@
                                     <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm create-invoice-btn" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#addInvoiceModal"
-                                            data-record-id="{{ $record->id }}">
+                                            data-record-id="{{ $record->id }}"
+                                            data-record-cost="{{ $record->cost ?? '' }}">
                                         <i class="bi bi-receipt me-1"></i> Lập hóa đơn
                                     </button>
                                 </td>
@@ -242,7 +243,7 @@
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label text-secondary small fw-medium">Tổng tiền (VNĐ)</label>
-                                                <input type="number" name="total_amount" class="form-control form-control-sm bg-white focus-ring focus-ring-primary" value="{{ $invoice->total_amount }}" required>
+                                                <input type="number" min="1" step="any" name="total_amount" class="form-control form-control-sm bg-white focus-ring focus-ring-primary" value="{{ $invoice->total_amount }}" required>
                                             </div>
                                             <div class="col-md-2">
                                                 <label class="form-label text-secondary small fw-medium">Trạng thái</label>
@@ -286,11 +287,13 @@
                             <label for="medical_record_id" class="form-label text-secondary fw-medium small mb-1">Chọn Hồ Sơ Bệnh Án <span class="text-danger">*</span></label>
                             <select name="medical_record_id" id="medical_record_id" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2" required>
                                 <option value="">-- Chọn Hồ Sơ --</option>
-                                @foreach($medicalRecords as $record)
-                                <option value="{{ $record->id }}">
+                                @forelse($medicalRecords as $record)
+                                <option value="{{ $record->id }}" data-cost="{{ $record->cost ?? '' }}" label="#{{ $record->id }} - {{ optional($record->user)->name }} | SĐT: {{ optional($record->user)->phone }} | {{ $record->service ?: 'Khám tổng quát' }} | Khám ngày: {{ \Carbon\Carbon::parse($record->exam_date)->format('d/m/Y') }}">
                                     #{{ $record->id }} - {{ optional($record->user)->name }} (Khám ngày: {{ \Carbon\Carbon::parse($record->exam_date)->format('d/m/Y') }})
                                 </option>
-                                @endforeach
+                                @empty
+                                <option value="" disabled>Không còn hồ sơ nào cần lập hóa đơn</option>
+                                @endforelse
                             </select>
                         </div>
                         
@@ -310,7 +313,7 @@
                         <div class="col-md-12">
                             <label for="total_amount" class="form-label text-secondary fw-medium small mb-1">Tổng Số Tiền <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" step="any" name="total_amount" id="total_amount" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" placeholder="0" required>
+                                <input type="number" min="1" step="any" name="total_amount" id="total_amount" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" placeholder="Nhập số tiền" required>
                                 <span class="input-group-text bg-light border-0 text-secondary fw-medium px-4">VNĐ</span>
                             </div>
                         </div>
@@ -332,12 +335,30 @@
         document.querySelectorAll('.create-invoice-btn').forEach(button => {
             button.addEventListener('click', function() {
                 let recordId = this.getAttribute('data-record-id');
+                let recordCost = this.getAttribute('data-record-cost');
                 let selectElement = document.getElementById('medical_record_id');
                 if (selectElement && recordId) {
                     selectElement.value = recordId;
                 }
+                let amountInput = document.getElementById('total_amount');
+                if (amountInput && recordCost && Number(recordCost) > 0) {
+                    amountInput.value = recordCost;
+                }
             });
         });
+
+        let medicalRecordSelect = document.getElementById('medical_record_id');
+        if (medicalRecordSelect) {
+            medicalRecordSelect.addEventListener('change', function () {
+                let selectedOption = this.options[this.selectedIndex];
+                let amountInput = document.getElementById('total_amount');
+                let recordCost = selectedOption ? selectedOption.getAttribute('data-cost') : '';
+
+                if (amountInput && recordCost && Number(recordCost) > 0) {
+                    amountInput.value = recordCost;
+                }
+            });
+        }
 
         // Toggle inline edit row
         document.querySelectorAll('.edit-btn').forEach(button => {

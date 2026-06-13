@@ -2,43 +2,49 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Doctor;
 use App\Models\Invoice;
 use App\Models\MedicalRecord;
-use App\Models\Doctor;
-
+use Illuminate\Http\Request;
 
 class AdminInvoiceController extends Controller
 {
-    // Hiển thị danh sách hóa đơn với tìm kiếm
     public function index(Request $request)
     {
-        $query = Invoice::query();
+        $query = Invoice::with('medicalRecord.user');
+        $search = trim((string) $request->input('search', ''));
 
-        // Tìm kiếm hóa đơn nếu có input search
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->whereHas('medicalRecord.user', function($uq) use ($search) {
-                $uq->where('name', 'like', "%$search%")
-                   ->orWhere('phone', 'like', "%$search%");
-            })
-            ->orWhere('services_medicines', 'like', "%$search%");
+        if ($search !== '') {
+            $recordId = ltrim($search, '#');
+
+            $query->where(function ($invoiceQuery) use ($search, $recordId) {
+                $invoiceQuery
+                    ->whereHas('medicalRecord.user', function ($userQuery) use ($search) {
+                        $userQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    })
+                    ->orWhere('services_medicines', 'like', "%{$search}%");
+
+                if (ctype_digit($recordId)) {
+                    $invoiceQuery->orWhere('medical_record_id', (int) $recordId);
+                }
+            });
         }
 
-        // Lấy danh sách hóa đơn
         $invoices = $query->latest()->get();
 
-        // Tính toán thống kê
         $totalInvoices = Invoice::count();
         $totalMedicalRecords = MedicalRecord::count();
         $totalDoctors = Doctor::count();
         $totalRevenue = Invoice::whereIn('status', Invoice::paidStatusValues())->sum('total_amount');
 
-        // Lấy danh sách hồ sơ bệnh án để tạo hóa đơn
-        $medicalRecords = MedicalRecord::all();
+        $medicalRecords = MedicalRecord::with('user')
+            ->doesntHave('invoice')
+            ->latest()
+            ->get();
 
-        // Lấy danh sách hồ sơ chưa thanh toán (chờ lập hóa đơn)
-        $unpaidRecords = MedicalRecord::where('status', 'unpaid')->latest()->get();
+        $unpaidRecords = $medicalRecords;
 
         return view('role.adminmanageinvoices', compact(
             'invoices',
@@ -49,23 +55,20 @@ class AdminInvoiceController extends Controller
             'medicalRecords',
             'unpaidRecords'
         ));
-
     }
 
-    // Hiển thị form tạo hóa đơn
     public function create()
     {
         return redirect()->route('admin.invoices.index')
             ->with('success', 'Bạn có thể lập hóa đơn mới bằng biểu mẫu trên trang quản lý hóa đơn.');
     }
 
-    // Lưu hóa đơn mới vào CSDL
     public function store(Request $request)
     {
         $request->validate([
             'medical_record_id' => 'required|exists:medical_records,id',
             'invoice_date' => 'required|date',
-            'total_amount' => 'required|numeric|min:0',
+            'total_amount' => 'required|numeric|min:1',
             'status' => 'required|string',
         ]);
 
@@ -74,29 +77,29 @@ class AdminInvoiceController extends Controller
             return back()->withInput()->with('error', 'Trạng thái hóa đơn không hợp lệ.');
         }
 
-        // Lấy thông tin hồ sơ bệnh án
-        $medicalRecord = MedicalRecord::findOrFail($request->medical_record_id);
+        $medicalRecord = MedicalRecord::with('invoice')->findOrFail($request->medical_record_id);
+        if ($medicalRecord->invoice) {
+            return back()
+                ->withInput()
+                ->with('error', 'Hồ sơ bệnh án này đã có hóa đơn. Vui lòng chỉnh sửa hóa đơn hiện có thay vì lập hóa đơn mới.');
+        }
 
-        // Tạo hóa đơn mới
         Invoice::create([
             'medical_record_id' => $medicalRecord->id,
-            'services_medicines' => $medicalRecord->service . "; " . $medicalRecord->prescription,
+            'services_medicines' => $this->servicesMedicinesText($medicalRecord),
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,
             'status' => $status,
         ]);
 
-        // Đồng bộ lại MedicalRecord
         $medicalRecord->update([
             'cost' => $request->total_amount,
-            'status' => $status
+            'status' => $status,
         ]);
 
         return redirect()->route('admin.invoices.index')->with('success', 'Hóa đơn đã được tạo thành công.');
     }
 
-
-    // Hiển thị form chỉnh sửa hóa đơn
     public function edit($id)
     {
         Invoice::findOrFail($id);
@@ -112,13 +115,12 @@ class AdminInvoiceController extends Controller
         return view('role.printinvoice', compact('invoice'));
     }
 
-    // Cập nhật hóa đơn
     public function update(Request $request, $id)
     {
         $request->validate([
             'invoice_date' => 'required|date',
             'services_medicines' => 'nullable|string',
-            'total_amount' => 'required|numeric',
+            'total_amount' => 'required|numeric|min:1',
             'status' => 'required|string',
         ]);
 
@@ -127,7 +129,7 @@ class AdminInvoiceController extends Controller
             return back()->withInput()->with('error', 'Trạng thái hóa đơn không hợp lệ.');
         }
 
-        $invoice = Invoice::findOrFail($id);
+        $invoice = Invoice::with('medicalRecord')->findOrFail($id);
 
         $invoice->update([
             'invoice_date' => $request->invoice_date,
@@ -136,33 +138,36 @@ class AdminInvoiceController extends Controller
             'status' => $status,
         ]);
 
-        // Đồng bộ lại MedicalRecord
         if ($invoice->medicalRecord) {
             $invoice->medicalRecord->update([
                 'cost' => $request->total_amount,
-                'status' => $status
+                'status' => $status,
             ]);
         }
 
         return redirect()->route('admin.invoices.index')->with('success', 'Hóa đơn đã được cập nhật.');
     }
 
-
-    // Xóa hóa đơn
     public function destroy($id)
     {
-        $invoice = Invoice::findOrFail($id);
-        
-        // Hoàn tác MedicalRecord trước khi xóa hóa đơn
+        $invoice = Invoice::with('medicalRecord')->findOrFail($id);
+
         if ($invoice->medicalRecord) {
             $invoice->medicalRecord->update([
                 'cost' => null,
-                'status' => 'unpaid'
+                'status' => 'unpaid',
             ]);
         }
-        
+
         $invoice->delete();
 
         return redirect()->route('admin.invoices.index')->with('success', 'Hóa đơn đã bị xóa.');
+    }
+
+    private function servicesMedicinesText(MedicalRecord $medicalRecord): string
+    {
+        return collect([$medicalRecord->service, $medicalRecord->prescription])
+            ->filter(fn ($value) => trim((string) $value) !== '')
+            ->implode('; ');
     }
 }
