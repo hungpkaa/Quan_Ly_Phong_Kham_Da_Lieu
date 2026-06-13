@@ -16,15 +16,26 @@ class SearchController extends Controller
             return response()->json(['error' => 'No query provided'], 400);
         }
 
-        $doctors = Doctor::where('name', 'like', "%{$query}%")
-            ->orWhere('specialty', 'like', "%{$query}%")
-            ->select('id', 'name', 'specialty', 'image')
+        $doctors = Doctor::with('user')
+            ->where(function ($doctorQuery) use ($query) {
+                $doctorQuery
+                    ->whereHas('user', function ($userQuery) use ($query) {
+                        $userQuery->where('name', 'like', "%{$query}%");
+                    })
+                    ->orWhere('specialty', 'like', "%{$query}%");
+            })
             ->limit(5)
             ->get()
             ->map(function ($doctor) {
-                // Đảm bảo ảnh có đường dẫn chính xác
-                $doctor->image = $doctor->image ? asset($doctor->image) : asset('img/icon-doctor.png');
-                return $doctor;
+                $doctorName = optional($doctor->user)->name ?: 'Bác sĩ';
+
+                return [
+                    'id' => $doctor->id,
+                    'name' => $doctorName,
+                    'specialty' => $doctor->specialty,
+                    'image' => $doctor->image ? asset($doctor->image) : asset('img/icon-doctor.png'),
+                    'url' => route('doctors.search_list', ['query' => $doctorName]),
+                ];
             });
 
         $services = Service::where('name', 'like', "%{$query}%")
@@ -32,9 +43,12 @@ class SearchController extends Controller
             ->limit(5)
             ->get()
             ->map(function ($service) {
-                // Đảm bảo ảnh có đường dẫn chính xác
-                $service->image = $service->image ? asset($service->image) : asset('img/service.webp');
-                return $service;
+                return [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'image' => $service->image ? asset($service->image) : asset('img/service.webp'),
+                    'url' => route('services.index', ['search' => $service->name]),
+                ];
             });
 
         return response()->json([

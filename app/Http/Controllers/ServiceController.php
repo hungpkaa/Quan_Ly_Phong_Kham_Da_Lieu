@@ -8,10 +8,14 @@ use App\Models\Service;
 class ServiceController extends Controller
 {
     // Hiển thị danh sách dịch vụ cho bệnh nhân
-    public function index()
+    public function index(Request $request)
     {
-        $services = Service::all(); 
-        return view('services', compact('services')); 
+        $search = $request->query('search');
+        $services = Service::when($search, function ($query, $search) {
+            $query->where('name', 'like', "%{$search}%");
+        })->get();
+
+        return view('services', compact('services', 'search')); 
     }
 
     // Hiển thị danh sách dịch vụ cho bệnh nhân view home

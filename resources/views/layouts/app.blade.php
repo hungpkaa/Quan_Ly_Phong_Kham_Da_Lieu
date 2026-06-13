@@ -134,7 +134,7 @@
         return;
       }
 
-      fetch(`/search?query=${query}`)
+      fetch(`/search?query=${encodeURIComponent(query)}`)
         .then(response => response.json())
         .then(data => {
           searchResults.innerHTML = "";
@@ -147,12 +147,22 @@
 
           let html = "";
           
+          const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, function(match) {
+            return {
+              '&': '&amp;',
+              '<': '&lt;',
+              '>': '&gt;',
+              '"': '&quot;',
+              "'": '&#039;'
+            }[match];
+          });
+
           const buildItem = (image, title, link) => {
             return `
               <a href="${link}" class="d-flex align-items-center p-2 px-3 text-decoration-none text-dark pmec-search-item">
                   <img src="${image}" class="rounded-3 me-3 border shadow-sm" 
                        style="width: 45px; height: 45px; object-fit: cover;">
-                  <span class="fs-6 text-truncate" style="max-width: calc(100% - 60px);">${title}</span>
+                  <span class="fs-6 text-truncate" style="max-width: calc(100% - 60px);">${escapeHtml(title)}</span>
               </a>
             `;
           };
@@ -161,7 +171,7 @@
           if (data.doctors.length > 0) {
             html += "<div class='px-3 py-2 small text-secondary fw-semibold bg-light border-bottom'>KẾT QUẢ BÁC SĨ</div>";
             data.doctors.forEach(doctor => {
-              html += buildItem(doctor.image, doctor.name, `/doctors/${doctor.id}`);
+              html += buildItem(doctor.image, doctor.name, doctor.url);
             });
           }
 
@@ -169,7 +179,7 @@
           if (data.services.length > 0) {
             html += "<div class='px-3 py-2 small text-secondary fw-semibold bg-light border-bottom border-top'>KẾT QUẢ DỊCH VỤ</div>";
             data.services.forEach(service => {
-              html += buildItem(service.image, service.name, `/services/${service.id}`);
+              html += buildItem(service.image, service.name, service.url);
             });
           }
 
