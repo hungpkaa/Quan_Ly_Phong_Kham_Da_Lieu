@@ -52,8 +52,6 @@ class DoctorMedicalRecordController extends Controller
             'cccd' => 'required|string|max:255',
             'service' => 'nullable|string|max:255',
             'exam_date' => 'required|date',
-            'cost' => 'nullable|numeric',
-            'status' => 'required|in:paid,unpaid',
             'diagnosis' => 'required|string',
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -62,31 +60,53 @@ class DoctorMedicalRecordController extends Controller
 
         $cost = $request->filled('cost') ? $request->input('cost') * 1000 : null;
 
-        $user = \App\Models\User::firstOrCreate(
-            ['phone' => $request->phone],
-            [
+        $user = \App\Models\User::where('phone', $request->phone)->first();
+        if ($user) {
+            // Validate if the inputted email is taken by ANOTHER user
+            if (\App\Models\User::where('email', $request->email)->where('id', '!=', $user->id)->exists()) {
+                return back()->withInput()->withErrors(['email' => 'Email này đã được sử dụng bởi một tài khoản khác có số điện thoại khác!']);
+            }
+            $user->update([
                 'name' => $request->name,
                 'email' => $request->email,
+                'age' => $request->age,
+                'cccd' => $request->cccd,
+            ]);
+        } else {
+            // Validate if the inputted email is already taken before creating new user
+            if (\App\Models\User::where('email', $request->email)->exists()) {
+                return back()->withInput()->withErrors(['email' => 'Email này đã được sử dụng bởi một tài khoản khác! Vui lòng nhập đúng số điện thoại của tài khoản đó.']);
+            }
+            $user = \App\Models\User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
                 'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
-                'role' => 'patient'
-            ]
-        );
+                'role' => 'patient',
+                'age' => $request->age,
+                'cccd' => $request->cccd,
+            ]);
+        }
 
-        $user->update([
-            'age' => $request->age,
-            'cccd' => $request->cccd,
-        ]);
-
-        MedicalRecord::create([
+        $record = MedicalRecord::create([
             'doctor_id' => $this->currentDoctor()->id,
             'user_id' => $user->id,
             'service' => $request->service,
             'exam_date' => $request->exam_date,
             'cost' => $cost,
-            'status' => $request->status,
+            'status' => $request->status ?? 'unpaid',
             'diagnosis' => $request->diagnosis,
             'prescription' => $request->prescription,
             'notes' => $request->notes,
+            'follow_up_date' => $request->follow_up_date,
+        ]);
+
+        \App\Models\Invoice::create([
+            'medical_record_id' => $record->id,
+            'services_medicines' => $record->service . ($record->prescription ? "; " . $record->prescription : ""),
+            'invoice_date' => now()->format('Y-m-d'),
+            'total_amount' => $cost ?? 0,
+            'status' => 'unpaid',
         ]);
 
         return redirect()->route('admindoctor.medicalrecords.index')
@@ -112,8 +132,6 @@ class DoctorMedicalRecordController extends Controller
             'cccd' => 'required|string|max:255',
             'service' => 'nullable|string|max:255',
             'exam_date' => 'required|date',
-            'cost' => 'nullable|numeric',
-            'status' => 'required|in:paid,unpaid',
             'diagnosis' => 'required|string',
             'prescription' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -122,9 +140,13 @@ class DoctorMedicalRecordController extends Controller
 
         $record = MedicalRecord::where('doctor_id', $this->currentDoctor()->id)->findOrFail($id);
 
-        $cost = $request->filled('cost') ? $request->input('cost') * 1000 : null;
-        
         if ($record->user) {
+            if (\App\Models\User::where('email', $request->email)->where('id', '!=', $record->user->id)->exists()) {
+                return back()->withInput()->withErrors(['email' => 'Email này đã được sử dụng bởi một tài khoản khác!']);
+            }
+            if (\App\Models\User::where('phone', $request->phone)->where('id', '!=', $record->user->id)->exists()) {
+                return back()->withInput()->withErrors(['phone' => 'Số điện thoại này đã được sử dụng bởi một tài khoản khác!']);
+            }
             $record->user->update([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -137,13 +159,17 @@ class DoctorMedicalRecordController extends Controller
         $record->update([
             'service' => $request->service,
             'exam_date' => $request->exam_date,
-            'cost' => $cost,
-            'status' => $request->status,
             'diagnosis' => $request->diagnosis,
             'prescription' => $request->prescription,
             'notes' => $request->notes,
             'follow_up_date' => $request->follow_up_date,
         ]);
+
+        if ($record->invoice) {
+            $record->invoice->update([
+                'services_medicines' => $record->service . ($record->prescription ? "; " . $record->prescription : ""),
+            ]);
+        }
 
         return redirect()->route('admindoctor.medicalrecords.index')
             ->with('success', 'Hồ sơ bệnh án đã được cập nhật thành công.');
@@ -166,6 +192,7 @@ class DoctorMedicalRecordController extends Controller
 
         $editMedicalRecord = new MedicalRecord([
             'exam_date' => $appointment->appointment_date,
+            'service' => $appointment->specialty ?: ('Khám ' . ($appointment->doctor && $appointment->doctor->specialty ? mb_strtolower($appointment->doctor->specialty, 'UTF-8') : 'da liễu')),
         ]);
 
         if ($appointment->user) {

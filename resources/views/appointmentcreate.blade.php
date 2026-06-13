@@ -478,10 +478,10 @@
 {{-- ===== JAVASCRIPT (giữ nguyên logic cũ) ===== --}}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Load shifts when date changes
+    // Load shifts when date or doctor changes
     $(document).ready(function () {
-        $('#appointment_date').change(function () {
-            var selectedDate = $(this).val();
+        function loadPublicAvailableShifts() {
+            var selectedDate = $('#appointment_date').val();
             var doctorId = $('#doctor_id').val();
             $('#shift').html('<option value="">-- Đang tải ca làm việc... --</option>');
 
@@ -521,7 +521,9 @@
             } else {
                 $('#shift').html('<option value="">-- Vui lòng chọn ngày trước --</option>');
             }
-        });
+        }
+
+        $('#appointment_date, #doctor_id').change(loadPublicAvailableShifts);
     });
 
     // Load doctors by specialty

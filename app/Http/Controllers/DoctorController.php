@@ -159,7 +159,9 @@ class DoctorController extends Controller
 
         $patients = Appointment::where('doctor_id', $doctor->id)
             ->with('user')
-            ->get();
+            ->orderBy('appointment_date', 'desc')
+            ->get()
+            ->unique('user_id');
 
         return view('role.patients', compact('patients'));
     }

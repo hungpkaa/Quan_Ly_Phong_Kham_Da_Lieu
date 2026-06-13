@@ -52,7 +52,7 @@
                         </div>
                     </div>
                     <h3 class="mb-1 text-dark" style="font-weight: 600;">{{ number_format($appointmentsToday) }}</h3>
-                    <small class="text-warning text-dark" style="font-size: 13px;"><i class="bi bi-exclamation-circle-fill me-1"></i>3 lịch đang chờ xác nhận</small>
+                    <small class="text-warning text-dark" style="font-size: 13px;"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ $pendingAppointmentsCount }} lịch đang chờ xác nhận</small>
                 </div>
             </div>
         </div>
@@ -207,18 +207,18 @@
                                     <p class="mb-0 text-dark" style="font-size: 14px; font-weight: 500;">Hóa đơn chưa thanh toán</p>
                                 </div>
                             </div>
-                            <span class="badge bg-danger rounded-pill">1</span>
+                            <span class="badge bg-danger rounded-pill">{{ $unpaidInvoicesCount }}</span>
                         </a>
-                        <a href="{{ url('/admin/patients') }}" class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center justify-content-between text-decoration-none">
+                        <a href="{{ url('/admin/medicalrecords?filter=incomplete') }}" class="list-group-item list-group-item-action px-4 py-3 d-flex align-items-center justify-content-between text-decoration-none">
                             <div class="d-flex align-items-center">
                                 <div class="text-primary me-3">
-                                    <i class="bi bi-person-lines-fill fs-5"></i>
+                                    <i class="bi bi-file-earmark-medical fs-5"></i>
                                 </div>
                                 <div>
-                                    <p class="mb-0 text-dark" style="font-size: 14px; font-weight: 500;">Hồ sơ bệnh nhân chưa hoàn thiện</p>
+                                    <p class="mb-0 text-dark" style="font-size: 14px; font-weight: 500;">Hồ sơ bệnh án chưa hoàn thiện</p>
                                 </div>
                             </div>
-                            <span class="badge bg-primary rounded-pill">2</span>
+                            <span class="badge bg-primary rounded-pill">{{ $incompleteMedicalRecordsCount }}</span>
                         </a>
                     </ul>
                 </div>
@@ -272,18 +272,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const ctxRev = document.getElementById('revenueChart').getContext('2d');
     new Chart(ctxRev, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: revLabels.length > 0 ? revLabels : ['Chưa có dữ liệu'],
             datasets: [{
                 label: 'Doanh thu (VNĐ)',
                 data: revTotals.length > 0 ? revTotals : [0],
-                borderColor: '#198754',
-                backgroundColor: 'rgba(25, 135, 84, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.3,
-                pointBackgroundColor: '#198754'
+                backgroundColor: '#198754',
+                borderRadius: 4,
             }]
         },
         options: {
@@ -291,7 +287,12 @@ document.addEventListener('DOMContentLoaded', function() {
             maintainAspectRatio: false,
             scales: {
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('vi-VN').format(value);
+                        }
+                    }
                 }
             },
             plugins: {

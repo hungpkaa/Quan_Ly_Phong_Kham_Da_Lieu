@@ -96,6 +96,60 @@
         </div>
     </div>
 
+    <!-- Danh sách Hồ Sơ Chờ Lập Hóa Đơn -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 border-warning">
+        <div class="card-header bg-warning bg-opacity-10 border-bottom py-3 px-4 rounded-top-4 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 text-warning-emphasis fw-bold">
+                <i class="bi bi-clock-history me-2"></i> Hồ Sơ Chờ Lập Hóa Đơn
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            @if($unpaidRecords->isEmpty())
+                <div class="text-center py-4">
+                    <p class="mb-0 text-secondary">Tuyệt vời! Tất cả hồ sơ đã được thanh toán.</p>
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 60px;">#</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Khách hàng</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Ngày khám</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small">Dịch vụ / Thuốc</th>
+                                <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 150px;">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($unpaidRecords as $record)
+                            <tr>
+                                <td class="py-3 text-center text-secondary">{{ $loop->iteration }}</td>
+                                <td class="py-3">
+                                    <div class="fw-semibold text-dark">{{ optional($record->user)->name }}</div>
+                                    <div class="text-secondary small">SĐT: {{ optional($record->user)->phone }}</div>
+                                </td>
+                                <td class="py-3 text-secondary small">{{ \Carbon\Carbon::parse($record->exam_date)->format('d/m/Y') }}</td>
+                                <td class="py-3 text-secondary small">
+                                    <div class="fw-medium text-dark mb-1"><span class="badge bg-light text-dark border px-2 py-1">{{ $record->service ?: 'Khám tổng quát' }}</span></div>
+                                    <div class="text-truncate" style="max-width: 250px;" title="{{ $record->prescription }}">{{ $record->prescription ?: 'Không kê đơn' }}</div>
+                                </td>
+                                <td class="py-3 text-center">
+                                    <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm create-invoice-btn" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#addInvoiceModal"
+                                            data-record-id="{{ $record->id }}">
+                                        <i class="bi bi-receipt me-1"></i> Lập hóa đơn
+                                    </button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+
     <!-- Danh sách Hóa Đơn -->
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-header bg-white border-bottom py-3 px-4 rounded-top-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -150,7 +204,7 @@
                                 </td>
                                 <td class="py-3 text-end fw-semibold text-danger">{{ number_format($invoice->total_amount, 0) }} đ</td>
                                 <td class="py-3 text-center">
-                                    @if($invoice->status === 'Chưa thanh toán')
+                                    @if(!$invoice->isPaid())
                                         <span class="badge bg-warning text-dark bg-opacity-25 border border-warning rounded-pill fw-medium px-2 py-1">Chưa thanh toán</span>
                                     @else
                                         <span class="badge bg-success text-success bg-opacity-10 border border-success rounded-pill fw-medium px-2 py-1"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>
@@ -193,8 +247,8 @@
                                             <div class="col-md-2">
                                                 <label class="form-label text-secondary small fw-medium">Trạng thái</label>
                                                 <select name="status" class="form-select form-select-sm bg-white focus-ring focus-ring-primary">
-                                                    <option value="Chưa thanh toán" {{ $invoice->status == 'Chưa thanh toán' ? 'selected' : '' }}>Chưa thanh toán</option>
-                                                    <option value="Đã thanh toán" {{ $invoice->status == 'Đã thanh toán' ? 'selected' : '' }}>Đã thanh toán</option>
+                                                    <option value="unpaid" {{ $invoice->statusCode() === 'unpaid' ? 'selected' : '' }}>Chưa thanh toán</option>
+                                                    <option value="paid" {{ $invoice->statusCode() === 'paid' ? 'selected' : '' }}>Đã thanh toán</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-2 d-flex gap-2">
@@ -248,8 +302,8 @@
                         <div class="col-md-6">
                             <label for="status" class="form-label text-secondary fw-medium small mb-1">Trạng Thái Thanh Toán <span class="text-danger">*</span></label>
                             <select name="status" id="status" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2" required>
-                                <option value="Chưa thanh toán">Chưa thanh toán</option>
-                                <option value="Đã thanh toán">Đã thanh toán</option>
+                                <option value="unpaid">Chưa thanh toán</option>
+                                <option value="paid">Đã thanh toán</option>
                             </select>
                         </div>
 
@@ -274,6 +328,17 @@
 @push('scripts')
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        // Auto select medical record in Add Invoice Modal
+        document.querySelectorAll('.create-invoice-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                let recordId = this.getAttribute('data-record-id');
+                let selectElement = document.getElementById('medical_record_id');
+                if (selectElement && recordId) {
+                    selectElement.value = recordId;
+                }
+            });
+        });
+
         // Toggle inline edit row
         document.querySelectorAll('.edit-btn').forEach(button => {
             button.addEventListener('click', function() {

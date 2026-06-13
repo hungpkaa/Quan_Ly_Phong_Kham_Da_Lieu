@@ -128,10 +128,7 @@
 
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Chi phí (VNĐ) <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="number" step="any" name="cost" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ isset($editMedicalRecord) ? $editMedicalRecord->cost / 1000 : old('cost') }}" required>
-                                    <span class="input-group-text bg-light border-0 text-secondary">.000</span>
-                                </div>
+                                <input type="number" step="any" name="cost" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ isset($editMedicalRecord) ? $editMedicalRecord->cost : old('cost') }}" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Thanh toán <span class="text-danger">*</span></label>
@@ -293,7 +290,7 @@
                 @if($medicalRecords->hasPages())
                 <div class="card-footer bg-white border-top py-3 px-4 rounded-bottom-4">
                     <div class="d-flex justify-content-center pagination-sm">
-                        {{ $medicalRecords->links('pagination::bootstrap-5') }}
+                        {{ $medicalRecords->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
                 @endif
@@ -310,6 +307,39 @@
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl)
     })
+
+    // === Validate: Tái khám phải sau Ngày khám ===
+    document.addEventListener("DOMContentLoaded", function() {
+        const examDateInput = document.querySelector('input[name="exam_date"]');
+        const followUpInput = document.querySelector('input[name="follow_up_date"]');
+
+        if (examDateInput && followUpInput) {
+            function updateFollowUpMin() {
+                const examDate = examDateInput.value;
+                if (examDate) {
+                    const nextDay = new Date(examDate);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    followUpInput.min = nextDay.toISOString().split('T')[0];
+                    if (followUpInput.value && followUpInput.value <= examDate) {
+                        followUpInput.value = '';
+                    }
+                }
+            }
+            examDateInput.addEventListener('change', updateFollowUpMin);
+            updateFollowUpMin();
+
+            const form = examDateInput.closest('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (followUpInput.value && examDateInput.value && followUpInput.value <= examDateInput.value) {
+                        e.preventDefault();
+                        alert('Ngày tái khám phải sau ngày khám!');
+                        followUpInput.focus();
+                    }
+                });
+            }
+        }
+    });
 </script>
 @endpush
 @endsection

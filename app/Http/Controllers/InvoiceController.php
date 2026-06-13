@@ -62,7 +62,7 @@ class InvoiceController extends Controller
         $servicesMedicines = '';
 
         if ($request->has('medical_record_id')) {
-            $medicalRecord = MedicalRecord::findOrFail($request->input('medical_record_id'));
+            $medicalRecord = MedicalRecord::with('user')->findOrFail($request->input('medical_record_id'));
             $this->authorizeMedicalRecord($medicalRecord);
             $invoices = Invoice::where('medical_record_id', $medicalRecord->id)->latest()->paginate(5); // SỬA LẠI paginate(5)
 
@@ -81,10 +81,15 @@ class InvoiceController extends Controller
         $request->validate([
             'invoice_date' => 'required|date',
             'total_amount' => 'required|numeric',
-            'status' => 'required|in:Đã thanh toán,Chưa thanh toán',
+            'status' => 'required|string',
             'medical_record_id' => 'required|exists:medical_records,id',
             'services_medicines' => 'nullable|string', // Nhận dữ liệu từ form
         ]);
+
+        $status = Invoice::normalizeStatus($request->status);
+        if (!$status) {
+            return back()->withInput()->with('error', 'Trạng thái hóa đơn không hợp lệ.');
+        }
 
         $medicalRecord = MedicalRecord::findOrFail($request->input('medical_record_id'));
         $this->authorizeMedicalRecord($medicalRecord);
@@ -100,7 +105,7 @@ class InvoiceController extends Controller
             'medical_record_id' => $medicalRecord->id,
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,
-            'status' => $request->status,
+            'status' => $status,
             'services_medicines' => $servicesMedicines, // Lưu thông tin "Dịch vụ + Thuốc"
         ]);
 
@@ -120,7 +125,14 @@ class InvoiceController extends Controller
     {
         $invoice = Invoice::findOrFail($id);
         $this->authorizeInvoice($invoice);
-        return view('role.editinvoice', compact('invoice'));
+
+        return redirect()->route('admindoctor.invoices.index')
+            ->with('success', 'Trang hóa đơn bác sĩ hiện hỗ trợ xem, in và xóa hóa đơn. Vui lòng lập hóa đơn mới nếu cần điều chỉnh.');
+    }
+
+    public function show($id)
+    {
+        return $this->print($id);
     }
 
     // Cập nhật hóa đơn
@@ -129,15 +141,20 @@ class InvoiceController extends Controller
         $request->validate([
             'invoice_date' => 'required|date',
             'total_amount' => 'required|numeric',
-            'status' => 'required|in:Đã thanh toán,Chưa thanh toán',
+            'status' => 'required|string',
         ]);
+
+        $status = Invoice::normalizeStatus($request->status);
+        if (!$status) {
+            return back()->withInput()->with('error', 'Trạng thái hóa đơn không hợp lệ.');
+        }
 
         $invoice = Invoice::findOrFail($id);
         $this->authorizeInvoice($invoice);
         $invoice->update([
             'invoice_date' => $request->invoice_date,
             'total_amount' => $request->total_amount,
-            'status' => $request->status,
+            'status' => $status,
         ]);
 
         return redirect()->route('admindoctor.invoices.index')->with('success', 'Hóa đơn đã được cập nhật.');

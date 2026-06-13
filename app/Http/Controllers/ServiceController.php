@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Service;
-use Illuminate\Support\Facades\Storage;
 
 class ServiceController extends Controller
 {
@@ -34,7 +33,7 @@ class ServiceController extends Controller
 {
     $request->validate([
         'name' => 'required|string|max:255',
-        'image' => 'required|file|max:5120', // Cho phép mọi file, tối đa 5MB
+        'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
     ]);
 
     if ($request->hasFile('image')) {
@@ -60,8 +59,10 @@ class ServiceController extends Controller
     // Hiển thị form sửa dịch vụ
     public function edit($id)
     {
-        $service = Service::findOrFail($id);
-        return view('role.manageservices.edit', compact('service'));
+        Service::findOrFail($id);
+
+        return redirect()->route('admin.manageservices', ['edit_id' => $id])
+            ->with('success', 'Vui lòng chỉnh sửa dịch vụ trực tiếp trong danh sách.');
     }
 
     public function update(Request $request, $id)
@@ -70,7 +71,7 @@ class ServiceController extends Controller
     
         $request->validate([
             'name' => 'required|string|max:255',
-            'image' => 'file|max:5120', // Cho phép mọi file, tối đa 5MB
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ]);
     
         $imagePath = $service->image; // Giữ đường dẫn ảnh cũ nếu không có ảnh mới
@@ -102,7 +103,9 @@ class ServiceController extends Controller
         $service = Service::findOrFail($id);
 
         // Xóa ảnh khỏi storage
-        Storage::disk('public')->delete($service->image);
+        if ($service->image && file_exists(public_path($service->image))) {
+            unlink(public_path($service->image));
+        }
 
         $service->delete();
         return redirect()->route('admin.manageservices')->with('success', 'Dịch vụ đã bị xóa.');

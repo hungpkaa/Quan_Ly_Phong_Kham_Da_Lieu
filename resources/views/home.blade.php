@@ -642,7 +642,7 @@ a { text-decoration: none !important; }
                 @if(isset($services) && $services->count() > 0)
                     @foreach($services as $index => $service)
                     <div class="service-card" data-aos="fade-up" data-aos-delay="{{ ($index % 3) * 100 + 100 }}">
-                        <img src="{{ asset($service->image) }}" alt="{{ $service->name }}" onerror="this.onerror=null; this.src='{{ asset('img/default.jpg') }}';">
+                        <img src="{{ asset($service->image) }}" alt="{{ $service->name }}" onerror="this.onerror=null; this.src='{{ asset('img/service.webp') }}';">
                         <h3>{{ $service->name }}</h3>
                     </div>
                     @endforeach

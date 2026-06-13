@@ -52,6 +52,9 @@ Route::post('/support', [SupportController::class, 'store'])->name('support.stor
 
 Route::post('/chatbot/send', [ChatbotController::class, 'sendMessage'])->name('chatbot.send');
 Route::post('/chatbot/clear', [ChatbotController::class, 'clearHistory'])->name('chatbot.clear');
+Route::get('/chatbot/doctors', [ChatbotController::class, 'getDoctorsForChatbot'])->name('chatbot.doctors');
+Route::get('/chatbot/available-slots', [ChatbotController::class, 'availableSlots'])->name('chatbot.available_slots');
+Route::post('/chatbot/book', [ChatbotController::class, 'storeFromChatbot'])->name('chatbot.book');
 
 /*
 |--------------------------------------------------------------------------
@@ -134,7 +137,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Doctor routes
+| Doctor routes (NO invoice management - billing is admin-only)
 |--------------------------------------------------------------------------
 */
 
@@ -153,6 +156,6 @@ Route::middleware(['auth', 'role:admindoctor'])->prefix('admindoctor')->group(fu
     Route::get('/progress', [\App\Http\Controllers\DoctorProgressController::class, 'index'])->name('admindoctor.progress.index');
     Route::delete('/progress/{id}', [\App\Http\Controllers\DoctorProgressController::class, 'destroy'])->name('admindoctor.progress.destroy');
 
+    // Bác sĩ chỉ được in hóa đơn (do admin tạo), không được tạo/sửa/xóa
     Route::get('/invoices/{id}/print', [InvoiceController::class, 'print'])->name('admindoctor.invoices.print');
-    Route::resource('invoices', InvoiceController::class)->names('admindoctor.invoices');
 });

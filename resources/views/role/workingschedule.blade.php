@@ -259,11 +259,135 @@
 
 @push('scripts')
 <script>
+    const scheduleDays = [
+        ['Monday', 'Thứ Hai'],
+        ['Tuesday', 'Thứ Ba'],
+        ['Wednesday', 'Thứ Tư'],
+        ['Thursday', 'Thứ Năm'],
+        ['Friday', 'Thứ Sáu'],
+        ['Saturday', 'Thứ Bảy'],
+        ['Sunday', 'Chủ Nhật'],
+    ];
+
+    const scheduleShifts = [
+        ['morning', 'Sáng (08:00 - 12:00)'],
+        ['afternoon', 'Chiều (14:00 - 18:00)'],
+    ];
+
+    function getScheduleRows() {
+        return Array.from(document.querySelectorAll('.schedule-row'));
+    }
+
+    function getNextScheduleIndex() {
+        const indexes = Array.from(document.querySelectorAll('.schedule-row select[name^="working_hours["]'))
+            .map(select => {
+                const match = select.name.match(/working_hours\[(\d+)\]/);
+                return match ? parseInt(match[1], 10) : -1;
+            });
+
+        return indexes.length ? Math.max(...indexes) + 1 : 0;
+    }
+
+    function getSchedulePair(row) {
+        return {
+            day: row.querySelector('select[name$="[day]"]')?.value || '',
+            shift: row.querySelector('select[name$="[shift]"]')?.value || '',
+        };
+    }
+
+    function getUsedSchedulePairs(ignoreRow = null) {
+        return new Set(getScheduleRows()
+            .filter(row => row !== ignoreRow)
+            .map(row => {
+                const pair = getSchedulePair(row);
+                return pair.day && pair.shift ? `${pair.day}|${pair.shift}` : '';
+            })
+            .filter(Boolean));
+    }
+
+    function findFirstAvailableSchedulePair(ignoreRow = null) {
+        const usedPairs = getUsedSchedulePairs(ignoreRow);
+
+        for (const [day] of scheduleDays) {
+            for (const [shift] of scheduleShifts) {
+                if (!usedPairs.has(`${day}|${shift}`)) {
+                    return { day, shift };
+                }
+            }
+        }
+
+        return null;
+    }
+
+    function buildScheduleOptions(items, selectedValue) {
+        return items.map(([value, label]) => (
+            `<option value="${value}" ${value === selectedValue ? 'selected' : ''}>${label}</option>`
+        )).join('');
+    }
+
+    function isDuplicateSchedulePair(row) {
+        const pair = getSchedulePair(row);
+        if (!pair.day || !pair.shift) return false;
+
+        return getUsedSchedulePairs(row).has(`${pair.day}|${pair.shift}`);
+    }
+
+    function updateScheduleOptions() {
+        getScheduleRows().forEach(row => {
+            const pair = getSchedulePair(row);
+            const usedPairs = getUsedSchedulePairs(row);
+            const daySelect = row.querySelector('select[name$="[day]"]');
+            const shiftSelect = row.querySelector('select[name$="[shift]"]');
+
+            if (daySelect) {
+                Array.from(daySelect.options).forEach(option => {
+                    option.disabled = scheduleShifts.every(([shift]) => usedPairs.has(`${option.value}|${shift}`));
+                });
+            }
+
+            if (shiftSelect) {
+                Array.from(shiftSelect.options).forEach(option => {
+                    option.disabled = usedPairs.has(`${pair.day}|${option.value}`);
+                });
+            }
+        });
+
+        const addButton = document.querySelector('button[onclick="addScheduleRow()"]');
+        if (addButton) {
+            const hasAvailablePair = Boolean(findFirstAvailableSchedulePair());
+            addButton.disabled = !hasAvailablePair;
+            addButton.title = hasAvailablePair ? 'Thêm ca trực' : 'Bác sĩ đã có đủ tất cả các ca trong tuần';
+        }
+    }
+
+    function attachScheduleRowListeners(row) {
+        row.querySelectorAll('select').forEach(select => {
+            select.addEventListener('change', () => {
+                if (isDuplicateSchedulePair(row)) {
+                    const replacement = findFirstAvailableSchedulePair(row);
+                    if (replacement) {
+                        row.querySelector('select[name$="[day]"]').value = replacement.day;
+                        row.querySelector('select[name$="[shift]"]').value = replacement.shift;
+                    }
+                    alert('Ca trực này đã tồn tại. Hệ thống đã chọn ca trống khác cho bạn.');
+                }
+
+                updateScheduleOptions();
+            });
+        });
+    }
+
     function addScheduleRow() {
+        const availablePair = findFirstAvailableSchedulePair();
+        if (!availablePair) {
+            alert('Bác sĩ đã có đủ tất cả các ca trực trong tuần.');
+            return;
+        }
+
         let emptyMsg = document.getElementById('emptyScheduleMsg');
         if(emptyMsg) emptyMsg.style.display = 'none';
 
-        let index = document.querySelectorAll('.schedule-row').length;
+        let index = getNextScheduleIndex();
         let scheduleDiv = document.createElement('div');
         scheduleDiv.classList.add('schedule-row', 'row', 'g-2', 'align-items-center', 'mb-3');
 
@@ -292,10 +416,15 @@
             </div>
         `;
         document.getElementById('scheduleContainer').appendChild(scheduleDiv);
+        scheduleDiv.querySelector('select[name$="[day]"]').value = availablePair.day;
+        scheduleDiv.querySelector('select[name$="[shift]"]').value = availablePair.shift;
+        attachScheduleRowListeners(scheduleDiv);
+        updateScheduleOptions();
     }
 
     function removeScheduleRow(button) {
         button.closest('.schedule-row').remove();
+        updateScheduleOptions();
     }
 
     function loadDoctorSchedule() {
@@ -307,6 +436,30 @@
             window.location.href = `?`; // Trở về trang trống
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        getScheduleRows().forEach(attachScheduleRowListeners);
+        updateScheduleOptions();
+
+        const scheduleForm = document.getElementById('updateScheduleForm');
+        if (scheduleForm) {
+            scheduleForm.addEventListener('submit', function (event) {
+                const seenPairs = new Set();
+                const duplicatedPair = getScheduleRows().some(row => {
+                    const pair = getSchedulePair(row);
+                    const key = `${pair.day}|${pair.shift}`;
+                    if (seenPairs.has(key)) return true;
+                    seenPairs.add(key);
+                    return false;
+                });
+
+                if (duplicatedPair) {
+                    event.preventDefault();
+                    alert('Danh sách ca trực đang có ca bị trùng. Vui lòng kiểm tra lại trước khi lưu.');
+                }
+            });
+        }
+    });
 
     window.onload = function () {
         if (localStorage.getItem("scrollToForm") === "true") {

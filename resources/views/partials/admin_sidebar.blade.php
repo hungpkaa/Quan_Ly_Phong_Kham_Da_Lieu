@@ -72,11 +72,6 @@
                 <i class="bi bi-camera me-2"></i><span>Theo dõi tiến độ</span>
             </a>
         </li>
-        <li class="nav-item mb-1">
-            <a href="{{ url('/admindoctor/invoices') }}" class="nav-link px-3 sidebar-link {{ request()->is('admindoctor/invoices*') ? 'active' : '' }}">
-                <i class="bi bi-receipt me-2"></i><span>Quản lý hóa đơn</span>
-            </a>
-        </li>
     </ul>
     @endif
 </div>

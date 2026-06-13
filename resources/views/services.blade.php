@@ -464,7 +464,7 @@
                             @if(isset($services) && $services->count() > 0)
                             @foreach($services as $service)
                             <div class="grid-item">
-                                <img src="{{ asset($service->image) }}" alt="{{ $service->name }}" onerror="this.onerror=null; this.src='{{ asset('img/default.jpg') }}';">
+                                <img src="{{ asset($service->image) }}" alt="{{ $service->name }}" onerror="this.onerror=null; this.src='{{ asset('img/service.webp') }}';">
                                 <h3>{{ $service->name }}</h3>
                             </div>
                             @endforeach

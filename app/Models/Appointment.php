@@ -18,6 +18,7 @@ class Appointment extends Model
         'shift',
         'description',
         'status',
+        'source',
     ];
 
     /**

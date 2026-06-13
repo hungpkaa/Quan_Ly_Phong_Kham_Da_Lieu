@@ -2,151 +2,330 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Appointment;
+use App\Models\Doctor;
+use App\Models\Service;
+use App\Models\User;
+use App\Services\Appointments\AiBookingService;
+use App\Services\Appointments\AvailableSlotService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 
 class ChatbotController extends Controller
 {
-    private $apiKey;
-
-    public function __construct()
-    {
-        $this->apiKey = env('OPENROUTER_API_KEY');
-    }
-
-
-
+    /**
+     * Gửi tin nhắn tới Gemini API (có hỗ trợ Vision)
+     */
     public function sendMessage(Request $request)
     {
         $request->validate([
             'message' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120' // max 5MB
+            'image'   => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
         ]);
 
         $userMessage = $request->input('message') ?? '';
-        $hasImage = $request->hasFile('image');
+        $hasImage    = $request->hasFile('image');
         $imageBase64 = null;
-        $imageMime = null;
+        $imageMime   = null;
 
         if ($hasImage) {
-            $image = $request->file('image');
-            $imageMime = $image->getMimeType();
+            $image       = $request->file('image');
+            $imageMime   = $image->getMimeType();
             $imageBase64 = base64_encode(file_get_contents($image->getRealPath()));
         }
 
-        $context = "Bạn là PhenikaaMec AI, một trợ lý y tế chuyên nghiệp của hệ thống PhenikaaMec, chuyên về lĩnh vực Da liễu.
-Mục tiêu của bạn là tư vấn bệnh nhân, hỗ trợ bác sĩ, và cung cấp thông tin chính xác về các triệu chứng da liễu, thuốc điều trị, cách chữa tại nhà và bác sĩ phù hợp. Nếu người dùng gửi hình ảnh, hãy phân tích kỹ các triệu chứng trên da (màu sắc, nốt mụn, sưng đỏ, bong tróc...) để đưa ra nhận định chuyên môn.
+        // ========== DYNAMIC CONTEXT ==========
+        $systemPrompt = $this->buildSystemPrompt();
 
-YÊU CẦU QUAN TRỌNG VỀ ĐỊNH DẠNG:
-- Trả lời thật RÕ RÀNG, GỌN GÀNG và RẤT NGẮN GỌN SÚC TÍCH.
-- Tuyệt đối không viết thành đoạn văn dài dòng.
-- Luôn sử dụng danh sách gạch đầu dòng (-) để chia ý rõ ràng.
-- Sử dụng in đậm (**) cho các từ khóa quan trọng.
-
-Cách bạn phản hồi bệnh nhân:
-1. Khi bệnh nhân lần đầu trò chuyện, hãy giới thiệu bản thân ngắn gọn: 
-   'Chào bạn, tôi là PhenikaaMec AI - trợ lý y tế chuyên về Da liễu.' Nhưng giới thiệu 1 lần thôi, không cần giới thiệu lần 2!
-2. Nếu bệnh nhân chưa cung cấp thông tin quan trọng (tuổi, giới tính, triệu chứng cụ thể), hãy hỏi một lần ngắn gọn.
-3. Nếu bệnh nhân đã cung cấp thông tin, không hỏi lại mà tiếp tục hội thoại tự nhiên.
-
-Triệu chứng & Hướng dẫn Chữa trị:
-- Khi bệnh nhân cung cấp triệu chứng, hãy phân tích và tư vấn:
-   - Nguyên nhân có thể xảy ra?
-   - Thuốc nào có thể dùng? (Chỉ gợi ý tên hoạt chất, không kê đơn cụ thể)
-   - Cách chữa trị tại nhà?
-   - Khi nào nên đi khám bác sĩ?
-
-Ví dụ:
-- Triệu chứng: Mụn trứng cá, da dầu
-   - Có thể do rối loạn nội tiết, vi khuẩn hoặc chế độ ăn uống.
-   - Có thể dùng hoạt chất Benzoyl Peroxide hoặc Salicylic Acid.
-   - Rửa mặt bằng sữa rửa mặt dịu nhẹ, tránh chạm tay vào mặt, ăn nhiều rau xanh.
-   - Nếu mụn viêm nặng, nên gặp bác sĩ Da liễu để điều trị.
-
-- Triệu chứng: Nổi mẩn đỏ, ngứa
-   - Có thể do dị ứng, viêm da tiếp xúc hoặc nhiễm nấm.
-   - Dùng kem chứa Hydrocortisone hoặc kem dưỡng ẩm không hương liệu.
-   - Tránh tiếp xúc với tác nhân gây kích ứng, giữ vệ sinh da sạch sẽ.
-   - Nếu triệu chứng không giảm sau vài ngày, nên đi khám chuyên khoa Da liễu.
-
-- Triệu chứng: Da khô, bong tróc
-   - Có thể do thời tiết lạnh, viêm da cơ địa hoặc thiếu nước.
-   - Dùng kem dưỡng ẩm chứa Ceramide hoặc Hyaluronic Acid.
-   - Uống đủ nước, tránh nước nóng khi tắm, bôi kem dưỡng sau khi rửa mặt.
-   - Nếu tình trạng kéo dài, cần tư vấn bác sĩ Da liễu.
-
-Cách trả lời thông minh hơn:
-- Không lặp lại câu hỏi nếu bệnh nhân đã trả lời.
-- Nếu bệnh nhân yêu cầu thông tin về thuốc, chỉ cung cấp tên hoạt chất an toàn, không kê đơn cụ thể.
-- Nếu triệu chứng có dấu hiệu nghiêm trọng (sưng phù, đau rát dữ dội, lở loét), hãy khuyên bệnh nhân đi khám ngay lập tức.
-- Nếu bệnh nhân hỏi về bạn, hãy trả lời: 'Tôi là PhenikaaMec AI, trợ lý y tế chuyên về Da liễu', nhưng không lặp lại nhiều lần.
-
-4. Nếu triệu chứng của người hỏi liên quan đến Điều trị viêm da
-Hãy tư vấn họ đặt lịch khám với:
-
--Bác sĩ Nguyễn Văn B - chuyên Điều trị viêm da
--Bác sĩ Trần Xuân H - chuyên Điều trị viêm da
--Bác sĩ Phan Văn J - chuyên Điều trị viêm da
-5. Nếu triệu chứng của người hỏi liên quan đến Trị sẹo rỗ, sẹo lõm
-Hãy tư vấn họ đặt lịch khám với:
-
--Bác sĩ Nguyễn Văn C - chuyên Trị sẹo rỗ, sẹo lõm
--Bác sĩ Lê Bá K - chuyên Trị sẹo rỗ, sẹo lõm
--Bác sĩ Lê Văn L - chuyên Trị sẹo rỗ, sẹo lõm
-6. Nếu triệu chứng của người hỏi liên quan đến Điều trị mụn
--Hãy tư vấn họ đặt lịch khám với:
-
--Bác sĩ Nguyễn Thị D - chuyên Điều trị mụn
--Bác sĩ Lê Minh I - chuyên Điều trị mụn
--Bác sĩ Trịnh Thị M - chuyên Điều trị mụn
-7. Nếu triệu chứng của người hỏi liên quan đến Chăm sóc da
-Hãy tư vấn họ đặt lịch khám với:
-
--Bác sĩ Nguyễn Thị E - chuyên Chăm sóc da
--Bác sĩ Trương Thị N - chuyên Chăm sóc da
--Bác sĩ Lê Mạnh O - chuyên Chăm sóc da
-8. Nếu triệu chứng của người hỏi liên quan đến Trị nám, tàn nhang
-Hãy tư vấn họ đặt lịch khám với:
-
--Bác sĩ Trịnh Xuân F - chuyên Trị nám, tàn nhang
--Bác sĩ Nguyễn Văn A - chuyên Trị nám, tàn nhang
--Bác sĩ Trịnh Trần Phương G - chuyên Trị nám, tàn nhang
-
-
-9. nếu ngưởi hỏi hỏi về thời gian làm việc của họ thì nói kiểm tra ở trang Doctors của website phòng khám da liễu PHENIKAAMEC
-
-
-10. Nhớ không được trả lời dài dòng, phải đúng trọng tâm.
-
-
-
-";
-
-
-
-        $primaryModel = env('AI_MODEL', 'openai/gpt-4o-mini'); // Sử dụng model hoạt động nhanh nhất trên OpenRouter
-        $fallbackModels = [
-            $primaryModel,
-            'openai/gpt-3.5-turbo',
-            'google/gemini-1.5-pro',
-        ];
-        $modelList = array_values(array_unique(array_filter($fallbackModels)));
-
-        // --- Bắt đầu: Lấy lịch sử chat từ Session ---
+        // ========== CHAT HISTORY ==========
         $chatHistory = session('chatbot_history', []);
-        
-        // Chuẩn bị nội dung gửi cho OpenRouter ở request hiện tại (bao gồm ảnh nếu có)
-        $currentMessageContent = $userMessage;
-        
+
+        // ========== CHỌN API ==========
+        $geminiKey = env('GEMINI_API_KEY');
+        $openrouterKey = env('OPENROUTER_API_KEY');
+        $result = null;
+        $preferOpenRouterVision = $hasImage
+            && $openrouterKey
+            && (env('VISION_MODEL') || env('AI_VISION_MODEL') || env('OPENROUTER_VISION_MODEL'));
+
+        if ($preferOpenRouterVision) {
+            Log::info("Using OpenRouter vision model before Gemini");
+            $result = $this->callOpenRouter($openrouterKey, $systemPrompt, $chatHistory, $userMessage, $hasImage, $imageBase64, $imageMime);
+        }
+
+        // Thử Gemini trước
+        if ($result === null && $geminiKey) {
+            $result = $this->callGemini($geminiKey, $systemPrompt, $chatHistory, $userMessage, $hasImage, $imageBase64, $imageMime);
+        }
+
+        // Fallback sang OpenRouter nếu Gemini thất bại hoặc không có key
+        if ($result === null && $openrouterKey && !$preferOpenRouterVision) {
+            Log::info("Gemini failed or unavailable, falling back to OpenRouter");
+            $result = $this->callOpenRouter($openrouterKey, $systemPrompt, $chatHistory, $userMessage, $hasImage, $imageBase64, $imageMime);
+        }
+
+        if ($hasImage && $result !== null && $this->isImageAnalysisRefusal(is_string($result) ? $result : json_encode($result))) {
+            Log::warning('Final chatbot response rejected because image analysis was refused.');
+            $result = null;
+        }
+
+        if ($result === null) {
+            if ($hasImage) {
+                return response()->json([
+                    'message' => 'Tôi chưa đọc được hình ảnh từ cấu hình AI hiện tại. Vui lòng kiểm tra GEMINI_API_KEY hoặc dùng một model OpenRouter có hỗ trợ vision, rồi thử gửi lại ảnh.',
+                ]);
+            }
+
+            return response()->json([
+                'message' => 'Lỗi phản hồi từ chatbot. Vui lòng kiểm tra lại cấu hình API Key.',
+            ]);
+        }
+
+        // ========== LƯU LỊCH SỬ ==========
+        $sessionMessage = $userMessage;
         if ($hasImage) {
+            $sessionMessage = "[Đã gửi 1 hình ảnh] " . $userMessage;
+        }
+        $chatHistory[] = ["role" => "user", "content" => $sessionMessage];
+        $chatHistory[] = ["role" => "assistant", "content" => $result];
+        session(['chatbot_history' => $chatHistory]);
+
+        return response()->json(['message' => $result]);
+    }
+
+    /**
+     * Xóa lịch sử chat
+     */
+    public function clearHistory()
+    {
+        session()->forget('chatbot_history');
+        return response()->json(['success' => true]);
+    }
+
+    // ================================================================
+    // PRIVATE METHODS
+    // ================================================================
+
+    /**
+     * Xây dựng System Prompt với dữ liệu động từ Database
+     */
+    private function buildSystemPrompt(): string
+    {
+        // Lấy danh sách bác sĩ từ DB, nhóm theo chuyên khoa
+        $doctorsList = '';
+        try {
+            $doctors = Doctor::with('user')->get()->groupBy('specialty');
+            foreach ($doctors as $specialty => $group) {
+                $names = $group->map(function ($d) {
+                    return $d->user ? ('  - BS. ' . $d->user->name) : null;
+                })->filter()->implode("\n");
+                $doctorsList .= "Chuyên khoa: {$specialty}\n{$names}\n";
+            }
+        } catch (\Exception $e) {
+            $doctorsList = "(Không tải được danh sách bác sĩ)\n";
+        }
+
+        // Lấy danh sách dịch vụ từ DB
+        $servicesList = '';
+        try {
+            $services = Service::pluck('name');
+            $servicesList = $services->map(fn($s) => "  - {$s}")->implode("\n");
+        } catch (\Exception $e) {
+            $servicesList = "(Không tải được danh sách dịch vụ)\n";
+        }
+
+        return <<<PROMPT
+Bạn là PhenikaaMec AI — trợ lý tư vấn của Phòng Khám Da Liễu Phenikaa.
+
+NĂNG LỰC CỐT LÕI:
+- Mô tả và phân tích sơ bộ triệu chứng da liễu (mụn, nám, viêm da, sẹo, dị ứng...)
+- Phân tích hình ảnh da liễu nếu người dùng gửi ảnh (mô tả chi tiết triệu chứng nhìn thấy: màu sắc, kích thước, vị trí, mức độ...)
+- Giới thiệu bác sĩ phù hợp theo chuyên khoa
+- Hướng dẫn đặt lịch khám tại website
+- Giải đáp thắc mắc về dịch vụ, giờ làm việc, quy trình khám
+
+QUY TẮC BẮT BUỘC:
+- TUYỆT ĐỐI KHÔNG đề xuất, gợi ý hay nhắc đến bất kỳ loại thuốc, hoạt chất, kem bôi hay sản phẩm điều trị nào. Đây là việc của bác sĩ chuyên môn.
+- Trả lời ngắn gọn, súc tích, dùng danh sách gạch đầu dòng (-)
+- In đậm (**) từ khóa quan trọng
+- Chỉ giới thiệu bản thân 1 lần duy nhất ở tin nhắn đầu tiên
+- Không hỏi lại thông tin bệnh nhân đã cung cấp
+- Nếu triệu chứng nghiêm trọng (sưng phù, lở loét, đau dữ dội) → khuyên đi khám NGAY
+
+CÁCH TƯ VẤN:
+1. Phân tích sơ bộ triệu chứng, mô tả nguyên nhân có thể
+2. Hướng dẫn chăm sóc cơ bản tại nhà (vệ sinh, giữ ẩm, tránh nắng... — KHÔNG đề cập thuốc)
+3. Giới thiệu bác sĩ chuyên khoa phù hợp (từ danh sách bên dưới)
+4. Khuyên bệnh nhân đặt lịch khám để được bác sĩ chẩn đoán và kê đơn điều trị chính xác
+
+ĐẶT LỊCH KHÁM QUA CHATBOT:
+- Sau khi tư vấn triệu chứng, hãy chủ động hỏi: "Bạn có muốn tôi hỗ trợ đặt lịch khám ngay không?"
+- Nếu người dùng đồng ý đặt lịch, hãy kết thúc câu trả lời BẰNG ĐÚNG chuỗi ký tự: [SHOW_BOOKING_FORM]
+- KHÔNG tự ý xác nhận đã đặt lịch thành công. Hệ thống sẽ hiển thị form để người dùng điền thông tin.
+- Chỉ chèn [SHOW_BOOKING_FORM] khi người dùng RÕ RÀNG muốn đặt lịch (nói "có", "đặt lịch", "muốn khám", v.v.)
+
+ĐỘI NGŨ BÁC SĨ PHÒNG KHÁM:
+{$doctorsList}
+→ Khi tư vấn, hãy gợi ý bác sĩ có chuyên khoa phù hợp với triệu chứng của bệnh nhân.
+→ Thời gian làm việc: kiểm tra tại trang "Đội ngũ bác sĩ" trên website phòng khám.
+
+DỊCH VỤ PHÒNG KHÁM CUNG CẤP:
+{$servicesList}
+
+LƯU Ý QUAN TRỌNG:
+- Bạn KHÔNG phải bác sĩ. Mọi phân tích chỉ mang tính tham khảo ban đầu.
+- KHÔNG BAO GIỜ gợi ý thuốc, hoạt chất hay sản phẩm điều trị. Nếu bệnh nhân hỏi về thuốc, hãy nói: "Việc kê đơn thuốc cần được bác sĩ chuyên khoa thực hiện sau khi thăm khám trực tiếp."
+- Luôn khuyên bệnh nhân đến khám trực tiếp để được chẩn đoán và điều trị đúng cách.
+KHI HỖ TRỢ ĐẶT LỊCH:
+- Khi người dùng muốn đặt lịch, hãy nói hệ thống sẽ tự tìm bác sĩ còn lịch trống theo chuyên khoa/ngày/ca và kết thúc bằng [SHOW_BOOKING_FORM].
+PROMPT;
+    }
+
+    private function isImageAnalysisRefusal(?string $text): bool
+    {
+        if ($text === null) {
+            return true;
+        }
+
+        $normalized = mb_strtolower($text, 'UTF-8');
+        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
+        if (is_string($ascii) && $ascii !== '') {
+            $normalized = $ascii;
+        }
+        $normalized = str_replace(['đ', 'Đ'], ['d', 'd'], $normalized);
+        $normalized = str_replace(
+            ['không', 'hình ảnh', 'phân tích', 'xem được', 'xin lỗi'],
+            ['khong', 'hinh anh', 'phan tich', 'xem duoc', 'xin loi'],
+            $normalized
+        );
+
+        $patterns = [
+            'toi khong the phan tich hinh anh',
+            'khong the phan tich hinh anh',
+            'khong the phan tich hinh anh cu the',
+            'khong the xem hinh anh',
+            'khong xem duoc hinh anh',
+            'cannot analyze the image',
+            'cannot analyze images',
+            'cannot view images',
+            'can\'t analyze images',
+            'unable to analyze images',
+            'i cannot see the image',
+            'i can\'t see the image',
+            'as a text-based',
+            'text based ai',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (strpos($normalized, $pattern) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gọi Google Gemini API trực tiếp
+     */
+    private function callGemini(string $apiKey, string $systemPrompt, array $chatHistory, string $userMessage, bool $hasImage, ?string $imageBase64, ?string $imageMime): ?string
+    {
+        $model = env('GEMINI_MODEL', 'gemini-2.0-flash');
+
+        // Xây dựng contents theo format Gemini
+        $contents = [];
+
+        // System instruction qua phần đầu
+        // Gemini hỗ trợ systemInstruction riêng
+        $systemInstruction = ['parts' => [['text' => $systemPrompt]]];
+
+        // Thêm lịch sử hội thoại (tối đa 10 tin gần nhất)
+        $recentHistory = array_slice($chatHistory, -10);
+        foreach ($recentHistory as $msg) {
+            $role = $msg['role'] === 'assistant' ? 'model' : 'user';
+            $contents[] = [
+                'role'  => $role,
+                'parts' => [['text' => $msg['content']]]
+            ];
+        }
+
+        // Tin nhắn hiện tại
+        $currentParts = [];
+        $textContent = $userMessage !== '' ? $userMessage : ($hasImage ? 'Hãy phân tích hình ảnh da liễu này và tư vấn cho tôi.' : '');
+        if ($textContent) {
+            $currentParts[] = ['text' => $textContent];
+        }
+
+        if ($hasImage && $imageBase64 && $imageMime) {
+            $currentParts[] = [
+                'inline_data' => [
+                    'mime_type' => $imageMime,
+                    'data'      => $imageBase64
+                ]
+            ];
+        }
+
+        $contents[] = [
+            'role'  => 'user',
+            'parts' => $currentParts
+        ];
+
+        $payload = [
+            'system_instruction' => $systemInstruction,
+            'contents'           => $contents,
+            'generationConfig'   => [
+                'temperature'     => 0.7,
+                'maxOutputTokens' => 1024,
+            ]
+        ];
+
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+
+        try {
+            $response = Http::timeout(30)->post($url, $payload);
+            $data = $response->json();
+
+            Log::info("Gemini Response", ['model' => $model, 'status' => $response->status()]);
+
+            if (isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                $text = $data['candidates'][0]['content']['parts'][0]['text'];
+                if ($hasImage && $this->isImageAnalysisRefusal($text)) {
+                    Log::warning('Gemini returned image-analysis refusal', ['model' => $model]);
+                    return null;
+                }
+
+                return $text;
+            }
+
+            // Log lỗi chi tiết
+            if (isset($data['error'])) {
+                Log::error("Gemini API Error", $data['error']);
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Gemini API Exception: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Fallback: Gọi OpenRouter API (giữ lại code cũ làm dự phòng)
+     */
+    private function callOpenRouter(string $apiKey, string $systemPrompt, array $chatHistory, string $userMessage, bool $hasImage, ?string $imageBase64, ?string $imageMime): ?string
+    {
+        $currentMessageContent = $userMessage;
+        if ($hasImage && $imageBase64 && $imageMime) {
             $currentMessageContent = [
                 [
                     "type" => "text",
                     "text" => $userMessage !== '' ? $userMessage : "Hãy phân tích hình ảnh này giúp tôi."
                 ],
                 [
-                    "type" => "image_url",
+                    "type"      => "image_url",
                     "image_url" => [
                         "url" => "data:{$imageMime};base64,{$imageBase64}"
                     ]
@@ -154,79 +333,160 @@ Hãy tư vấn họ đặt lịch khám với:
             ];
         }
 
-        // Tạo mảng messages để gửi đi
-        $messages = [
-            ["role" => "system", "content" => $context]
-        ];
-        
-        // Chỉ lấy 10 tin nhắn gần nhất từ lịch sử
+        $messages = [["role" => "system", "content" => $systemPrompt]];
         $messages = array_merge($messages, array_slice($chatHistory, -10));
-        
-        // Thêm tin nhắn HIỆN TẠI vào mảng gửi đi (có thể chứa chuỗi Base64 rất dài)
         $messages[] = ["role" => "user", "content" => $currentMessageContent];
 
-        // Lưu vào Session (Chỉ lưu text để tránh tràn dung lượng Session do Base64)
-        $sessionMessage = $userMessage;
+        $modelList = [];
         if ($hasImage) {
-            $sessionMessage = "[Đã gửi 1 hình ảnh] " . $userMessage;
+            // Ưu tiên model miễn phí hỗ trợ vision khi có ảnh
+            $modelList = [
+                env('OPENROUTER_VISION_MODEL'),
+                env('VISION_MODEL'),
+                env('AI_VISION_MODEL'),
+                'nex-agi/nex-n2-pro:free',
+                'nvidia/nemotron-nano-12b-v2-vl:free',
+                'google/gemini-2.0-flash-exp',
+                'google/gemini-1.5-pro',
+                'openai/gpt-4o-mini',
+            ];
+        } else {
+            $modelList = [
+                env('AI_MODEL', 'openai/gpt-4o-mini'),
+                'google/gemini-2.0-flash-exp',
+                'google/gemini-1.5-pro',
+            ];
         }
-        $chatHistory[] = ["role" => "user", "content" => $sessionMessage];
-        // --- Kết thúc ---
-
-        $responseData = null;
+        $modelList = array_values(array_unique(array_filter($modelList)));
 
         foreach ($modelList as $model) {
-            // **Gửi request đến API OpenRouter**
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->apiKey,
-                'HTTP-Referer' => env('APP_URL', 'http://localhost'),
-                'X-Title' => 'PhenikaaMec'
-            ])->post("https://openrouter.ai/api/v1/chat/completions", [
-                "model" => $model,
-                "messages" => $messages // Gửi toàn bộ lịch sử thay vì chỉ 1 câu hỏi
-            ]);
+            try {
+                $response = Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'HTTP-Referer'  => env('APP_URL', 'http://localhost'),
+                    'X-Title'       => 'PhenikaaMec'
+                ])->timeout(30)->post("https://openrouter.ai/api/v1/chat/completions", [
+                    "model"    => $model,
+                    "messages" => $messages
+                ]);
 
-            $responseData = $response->json();
-            Log::info("Model: $model - Response: " . json_encode($responseData)); // Ghi log phản hồi API để debug
+                $data = $response->json();
+                Log::info("OpenRouter Model: $model", ['status' => $response->status()]);
 
-            if (isset($responseData['choices'][0]['message']['content'])) {
-                break;
-            }
+                if (isset($data['choices'][0]['message']['content'])) {
+                    $content = $data['choices'][0]['message']['content'];
+                    $contentText = is_string($content) ? $content : json_encode($content);
 
-            if (isset($responseData['error'])) {
-                $errCode = $responseData['error']['code'] ?? 0;
-                // Sai API Key (401) hoặc hết tiền (402) thì dừng luôn vì có đổi model cũng vậy
-                if ($errCode === 401 || $errCode === 403 || $errCode === 402) {
-                    break;
+                    if ($hasImage && $this->isImageAnalysisRefusal($contentText)) {
+                        Log::warning('OpenRouter model returned image-analysis refusal', ['model' => $model]);
+                        continue;
+                    }
+
+                    return $content;
                 }
-                // Nếu model không hợp lệ (400) hoặc lỗi khác, tiếp tục thử model khác
+
+                if (isset($data['error'])) {
+                    $errCode = $data['error']['code'] ?? 0;
+                    if (in_array($errCode, [401, 402, 403])) break;
+                }
+            } catch (\Exception $e) {
+                Log::error("OpenRouter Exception ($model): " . $e->getMessage());
                 continue;
             }
         }
 
-        // **Kiểm tra nếu API phản hồi lỗi hoặc không có nội dung**
-        if (!isset($responseData['choices'][0]['message']['content'])) {
-            return response()->json([
-                'message' => 'Lỗi phản hồi từ chatbot. Vui lòng kiểm tra lại cấu hình API Key.',
-                'error' => $responseData
-            ]);
-        }
-
-        // **Lấy nội dung chatbot trả lời**
-        $botResponse = $responseData['choices'][0]['message']['content'];
-
-        // Lưu câu trả lời của bot vào lịch sử session
-        $chatHistory[] = ["role" => "assistant", "content" => $botResponse];
-        session(['chatbot_history' => $chatHistory]);
-
-        return response()->json([
-            'message' => $botResponse
-        ]);
+        return null;
     }
 
-    public function clearHistory()
+    /**
+     * API: Lấy danh sách bác sĩ cho form đặt lịch trong chatbot
+     */
+    public function getDoctorsForChatbot()
     {
-        session()->forget('chatbot_history');
-        return response()->json(['success' => true]);
+        try {
+            $doctorModels = Doctor::with('user')->get();
+            $doctors = $doctorModels->map(function ($d) {
+                return [
+                    'id'        => $d->id,
+                    'name'      => $d->user ? $d->user->name : 'N/A',
+                    'specialty'  => $d->specialty,
+                ];
+            });
+            return response()->json([
+                'doctors' => $doctors,
+                'specialties' => $doctorModels->pluck('specialty')->filter()->unique()->values(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['doctors' => [], 'specialties' => []], 500);
+        }
+    }
+
+    public function availableSlots(Request $request, AvailableSlotService $availableSlotService)
+    {
+        $data = $request->validate([
+            'specialty' => 'nullable|string|max:255',
+            'date_from' => 'nullable|date',
+            'preferred_shift' => 'nullable|in:morning,afternoon',
+        ]);
+
+        $slots = $availableSlotService->findAvailableSlots([
+            'specialty' => $data['specialty'] ?? null,
+            'date_from' => $data['date_from'] ?? now()->toDateString(),
+            'preferred_shift' => $data['preferred_shift'] ?? null,
+            'days' => 14,
+            'limit' => 5,
+        ]);
+
+        return response()->json(['slots' => $slots]);
+    }
+
+    /**
+     * API: Đặt lịch khám từ chatbot
+     */
+    public function storeFromChatbot(Request $request, AiBookingService $aiBookingService)
+    {
+        $request->validate([
+            'name'             => 'required|string|max:255',
+            'phone'            => 'required|string|max:20',
+            'doctor_id'        => 'required|exists:doctors,id',
+            'appointment_date' => 'required|date|after_or_equal:today',
+            'shift'            => 'required|in:morning,afternoon',
+            'description'      => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Tìm hoặc tạo user dựa vào SĐT
+            $appointment = $aiBookingService->book($request->only([
+                'name',
+                'phone',
+                'doctor_id',
+                'appointment_date',
+                'shift',
+                'description',
+            ]));
+
+            $doctor = $appointment->doctor;
+            $doctorName = $doctor && $doctor->user ? $doctor->user->name : 'bác sĩ';
+            $shiftText = $request->shift === 'morning' ? 'Buổi sáng' : 'Buổi chiều';
+
+            return response()->json([
+                'success' => true,
+                'message' => "Đặt lịch thành công! Bạn đã đặt lịch khám với BS. {$doctorName} vào ngày {$request->appointment_date} ({$shiftText}). Phòng khám sẽ liên hệ xác nhận qua số điện thoại {$request->phone}."
+            ]);
+
+        } catch (\Exception $e) {
+            if ($e instanceof RuntimeException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage() ?: 'Ca khám này vừa có người khác đặt. Vui lòng chọn một lịch trống khác.'
+                ], 409);
+            }
+
+            Log::error('Chatbot Booking Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Đặt lịch thất bại. Vui lòng thử lại hoặc gọi hotline 1900 886648.'
+            ], 500);
+        }
     }
 }

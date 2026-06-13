@@ -83,27 +83,27 @@
                             <!-- Bệnh nhân -->
                             <div class="col-12">
                                 <label class="form-label text-secondary fw-medium small mb-1">Tên bệnh nhân <span class="text-danger">*</span></label>
-                                <input type="text" name="name" id="name" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ $editAppointment->name ?? '' }}" required>
+                                <input type="text" name="name" id="name" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ old('name', optional(optional($editAppointment)->user)->name) }}" required>
                             </div>
                             
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Số điện thoại <span class="text-danger">*</span></label>
-                                <input type="text" name="phone" id="phone" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ $editAppointment->phone ?? '' }}" required>
+                                <input type="text" name="phone" id="phone" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ old('phone', optional(optional($editAppointment)->user)->phone) }}" required>
                             </div>
                             
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Tuổi <span class="text-danger">*</span></label>
-                                <input type="number" name="age" id="age" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ $editAppointment->age ?? '' }}" required>
+                                <input type="number" name="age" id="age" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ old('age', optional(optional($editAppointment)->user)->age) }}" required>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label text-secondary fw-medium small mb-1">CCCD <span class="text-danger">*</span></label>
-                                <input type="text" name="cccd" id="cccd" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ $editAppointment->cccd ?? '' }}" required>
+                                <input type="text" name="cccd" id="cccd" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ old('cccd', optional(optional($editAppointment)->user)->cccd) }}" required>
                             </div>
 
                             <div class="col-12">
                                 <label class="form-label text-secondary fw-medium small mb-1">Email <span class="text-danger">*</span></label>
-                                <input type="email" name="email" id="email" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ $editAppointment->email ?? '' }}" required>
+                                <input type="email" name="email" id="email" class="form-control bg-light border-0 focus-ring focus-ring-primary" value="{{ old('email', optional(optional($editAppointment)->user)->email) }}" required>
                             </div>
 
                             <hr class="my-3 text-secondary opacity-25">
@@ -331,9 +331,11 @@
             }
         });
 
+        var editAppointmentId = "{{ isset($editAppointment) ? $editAppointment->id : '' }}";
+
         // AJAX cho Ca làm việc
-        $('#appointment_date').change(function() {
-            var selectedDate = $(this).val();
+        function loadAvailableShifts() {
+            var selectedDate = $('#appointment_date').val();
             var doctorId = $('#doctor_id').val();
             $('#shift').html('<option value="">-- Đang tải... --</option>');
 
@@ -341,7 +343,11 @@
                 $.ajax({
                     url: '/get-working-hours',
                     type: 'GET',
-                    data: { doctor_id: doctorId, date: selectedDate },
+                    data: {
+                        doctor_id: doctorId,
+                        date: selectedDate,
+                        ignore_appointment_id: editAppointmentId || null
+                    },
                     success: function(data) {
                         $('#shift').html('<option value="">-- Chọn Ca --</option>');
                         if (data.morning || data.afternoon) {
@@ -358,7 +364,9 @@
             } else {
                 $('#shift').html('<option value="">-- Chọn ngày trước --</option>');
             }
-        });
+        }
+
+        $('#appointment_date, #doctor_id').change(loadAvailableShifts);
     });
 </script>
 @endpush

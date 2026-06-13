@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use App\Models\DoctorSchedule;
 use Illuminate\Support\Facades\DB;
+use App\Services\Appointments\AvailableSlotService;
 
 class AdminController extends Controller
 {
@@ -20,7 +21,8 @@ class AdminController extends Controller
         $totalPatients = \App\Models\User::where('role', 'patient')->count();
         $totalDoctors = \App\Models\Doctor::count();
         $appointmentsToday = \App\Models\Appointment::whereDate('appointment_date', \Carbon\Carbon::today())->count();
-        $revenueMonth = \App\Models\Invoice::whereMonth('created_at', \Carbon\Carbon::now()->month)
+        $revenueMonth = \App\Models\Invoice::whereIn('status', \App\Models\Invoice::paidStatusValues())
+                                            ->whereMonth('created_at', \Carbon\Carbon::now()->month)
                                             ->whereYear('created_at', \Carbon\Carbon::now()->year)
                                             ->sum('total_amount');
         
@@ -35,6 +37,12 @@ class AdminController extends Controller
         $recentPatients = \App\Models\User::where('role', 'patient')->latest()->take(5)->get();
         $recentAppointments = \App\Models\Appointment::with('doctor')->latest()->take(5)->get();
         $pendingAppointmentsCount = \App\Models\Appointment::where('status', 'pending')->count();
+        $unpaidInvoicesCount = \App\Models\Invoice::whereNotIn('status', \App\Models\Invoice::paidStatusValues())->count();
+        $incompleteMedicalRecordsCount = \App\Models\MedicalRecord::whereNull('diagnosis')
+                                        ->orWhereNull('prescription')
+                                        ->orWhere('diagnosis', '')
+                                        ->orWhere('prescription', '')
+                                        ->count();
 
         // Chart Data logic based on filter
         if ($filter == 'today') {
@@ -54,17 +62,36 @@ class AdminController extends Controller
         }
 
         // Chart Data: Doanh thu 6 tháng qua
-        $revenueChartData = \App\Models\Invoice::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, sum(total_amount) as total')
+        $revenueChartDataDB = \App\Models\Invoice::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, sum(total_amount) as total')
+            ->whereIn('status', \App\Models\Invoice::paidStatusValues())
             ->whereDate('created_at', '>=', \Carbon\Carbon::now()->subMonths(5)->startOfMonth())
             ->groupBy('year', 'month')
             ->orderBy('year', 'ASC')
             ->orderBy('month', 'ASC')
             ->get();
 
+        $revenueChartData = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $date = \Carbon\Carbon::now()->subMonths($i);
+            $year = $date->year;
+            $month = $date->month;
+            
+            $record = $revenueChartDataDB->first(function($item) use ($year, $month) {
+                return $item->year == $year && $item->month == $month;
+            });
+            
+            $revenueChartData[] = [
+                'year' => $year,
+                'month' => $month,
+                'total' => $record ? $record->total : 0
+            ];
+        }
+
         return view('role.admin', compact(
             'totalPatients', 'totalDoctors', 'appointmentsToday', 'revenueFormatted', 
             'recentPatients', 'recentAppointments', 'pendingAppointmentsCount',
-            'appointmentsChartData', 'revenueChartData', 'filter'
+            'appointmentsChartData', 'revenueChartData', 'filter',
+            'unpaidInvoicesCount', 'incompleteMedicalRecordsCount'
         ));
     }
 
@@ -224,6 +251,7 @@ class AdminController extends Controller
     public function showAllPatients(Request $request)
     {
         $search = $request->input('search');
+        $filter = $request->input('filter');
 
         $patients = User::where('role', 'patient')
             ->withCount(['appointments', 'medicalRecords'])
@@ -232,6 +260,16 @@ class AdminController extends Controller
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->when($filter === 'incomplete', function ($query) {
+                return $query->where(function($q) {
+                    $q->whereNull('age')
+                      ->orWhereNull('cccd')
+                      ->orWhereNull('phone')
+                      ->orWhere('age', 0)
+                      ->orWhere('cccd', '')
+                      ->orWhere('phone', '');
                 });
             })
             ->latest()
@@ -281,7 +319,9 @@ class AdminController extends Controller
                       ->orWhere('phone', 'like', "%{$search}%");
                 });
             })
+            ->orderByRaw("status = 'pending' DESC")
             ->orderBy('appointment_date', 'ASC')
+            ->orderBy('created_at', 'ASC')
             ->get();
 
         return view('role.manageappointments', compact('appointments', 'editAppointment', 'search', 'specialties', 'doctors'));
@@ -334,6 +374,20 @@ class AdminController extends Controller
             return back()->with('error', 'Bác sĩ không tồn tại');
         }
 
+        $slotService = app(AvailableSlotService::class);
+        if (!$slotService->doctorWorksOnShift($doctor->id, $request->appointment_date, $request->shift)) {
+            return back()->withInput()->with('error', 'Bác sĩ không có lịch làm việc trong ngày và ca khám đã chọn.');
+        }
+
+        // if (!$slotService->isShiftStillBookable($request->appointment_date, $request->shift)) {
+        //     return back()->withInput()->with('error', 'Ca khám đã qua hoặc không còn nhận đặt lịch.');
+        // } // Admin can optionally book for past dates if they want, but let's keep it restricted?
+        // Actually the user just complained about double booking, so we definitely need isSlotAvailable.
+
+        if (!$slotService->isSlotAvailable($doctor->id, $request->appointment_date, $request->shift)) {
+            return back()->withInput()->with('error', 'Ca khám này đã có người đặt. Vui lòng chọn lịch trống khác.');
+        }
+
         $user = \App\Models\User::firstOrCreate(
             ['phone' => $request->phone],
             [
@@ -383,6 +437,15 @@ class AdminController extends Controller
             'cccd' => 'required|string',
             'description' => 'nullable|string',
         ]);
+
+        $slotService = app(AvailableSlotService::class);
+        if (!$slotService->doctorWorksOnShift($request->doctor_id, $request->appointment_date, $request->shift)) {
+            return back()->withInput()->with('error', 'Bác sĩ không có lịch làm việc trong ngày và ca khám đã chọn.');
+        }
+
+        if (!$slotService->isSlotAvailable($request->doctor_id, $request->appointment_date, $request->shift, $id)) {
+            return back()->withInput()->with('error', 'Ca khám này đã có người đặt. Vui lòng chọn lịch trống khác.');
+        }
 
         if ($appointment->user) {
             $appointment->user->update([

@@ -121,10 +121,10 @@
                                                 <td class="px-4 py-3">
                                                     <div class="fw-medium text-dark">{{ $apt->doctor && $apt->doctor->specialty ? 'Khám ' . $apt->doctor->specialty : 'Khám tổng quát' }}</div>
                                                     @if($apt->doctor)
-                                                        <div class="text-secondary small">BS. {{ $apt->doctor->user->name }}</div>
+                                                        <div class="text-secondary small">BS. {{ optional($apt->doctor->user)->name ?? 'N/A' }}</div>
                                                     @endif
                                                 </td>
-                                                <td class="px-4 py-3 text-secondary small">{{ $apt->notes ?: 'Không có ghi chú' }}</td>
+                                                <td class="px-4 py-3 text-secondary small">{{ $apt->description ?: 'Không có ghi chú' }}</td>
                                                 <td class="px-4 py-3">
                                                     @if($apt->status == 'pending')
                                                         <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle rounded-pill px-3 py-2">Chờ xác nhận</span>
@@ -174,7 +174,7 @@
                                                     <div class="col-md-6">
                                                         <div class="mb-3">
                                                             <div class="text-secondary small fw-medium mb-1">Bác sĩ khám:</div>
-                                                            <div class="fw-medium text-dark">{{ $record->doctor ? 'BS. ' . $record->doctor->user->name : 'N/A' }}</div>
+                                                            <div class="fw-medium text-dark">{{ $record->doctor ? 'BS. ' . (optional($record->doctor->user)->name ?? 'N/A') : 'N/A' }}</div>
                                                         </div>
                                                         <div class="mb-3">
                                                             <div class="text-secondary small fw-medium mb-1">Chẩn đoán:</div>
@@ -232,7 +232,7 @@
                                             <div class="card-body p-3">
                                                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
                                                     <span class="text-secondary small"><i class="bi bi-calendar3 me-1"></i> {{ $prog->created_at->format('d/m/Y') }}</span>
-                                                    <span class="badge bg-light text-dark border"><i class="bi bi-person-fill me-1"></i> {{ $prog->doctor ? 'BS. ' . $prog->doctor->user->name : 'N/A' }}</span>
+                                                    <span class="badge bg-light text-dark border"><i class="bi bi-person-fill me-1"></i> {{ $prog->doctor ? 'BS. ' . (optional($prog->doctor->user)->name ?? 'N/A') : 'N/A' }}</span>
                                                 </div>
                                                 <p class="card-text text-dark small mb-0">{{ Str::limit($prog->notes, 50) ?: 'Không có ghi chú' }}</p>
                                             </div>
@@ -294,7 +294,7 @@
                             <select name="doctor_id" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2" required>
                                 <option value="">-- Chọn bác sĩ --</option>
                                 @foreach($doctors as $doc)
-                                    <option value="{{ $doc->id }}">BS. {{ $doc->user->name }} - {{ $doc->specialty }}</option>
+                                    <option value="{{ $doc->id }}">BS. {{ optional($doc->user)->name ?? 'N/A' }} - {{ $doc->specialty }}</option>
                                 @endforeach
                             </select>
                         @endif

@@ -11,9 +11,6 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    
     <style>
         body {
             background-color: #f8f9fa; /* Nền xám rất nhẹ chuẩn enterprise */

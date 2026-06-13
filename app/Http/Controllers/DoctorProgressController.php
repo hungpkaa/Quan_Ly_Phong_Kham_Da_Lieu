@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\PatientProgress;
 use App\Models\Doctor;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class DoctorProgressController extends Controller
 {
@@ -38,8 +39,8 @@ class DoctorProgressController extends Controller
         $doctorId = $this->currentDoctor()->id;
         $progress = PatientProgress::where('doctor_id', $doctorId)->findOrFail($id);
 
-        if (\Illuminate\Support\Facades\Storage::exists($progress->image_path)) {
-            \Illuminate\Support\Facades\Storage::delete($progress->image_path);
+        if (Storage::disk('public')->exists($progress->image_path)) {
+            Storage::disk('public')->delete($progress->image_path);
         }
         $progress->delete();
 

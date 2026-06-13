@@ -66,7 +66,6 @@
                                 <th class="border-0 py-3 text-secondary fw-medium small">Bệnh Nhân</th>
                                 <th class="border-0 py-3 text-secondary fw-medium small">Ngày Khám</th>
                                 <th class="border-0 py-3 text-secondary fw-medium small">Dịch Vụ / Chẩn Đoán</th>
-                                <th class="border-0 py-3 text-secondary fw-medium small text-center">Trạng Thái</th>
                                 <th class="border-0 py-3 text-secondary fw-medium small text-center" style="width: 140px;">Hành Động</th>
                             </tr>
                         </thead>
@@ -86,20 +85,10 @@
                                     <div class="text-secondary small text-truncate" style="max-width: 250px;" title="{{ $record->diagnosis }}">{{ $record->diagnosis }}</div>
                                 </td>
                                 <td class="py-3 text-center">
-                                    @if($record->status === 'paid')
-                                        <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill fw-medium px-2 py-1"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>
-                                    @else
-                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning rounded-pill fw-medium px-2 py-1">Chưa thanh toán</span>
-                                    @endif
-                                </td>
-                                <td class="py-3 text-center">
                                     <div class="d-flex justify-content-center gap-1">
                                         <button class="btn btn-sm btn-light border text-info rounded-circle view-btn" data-bs-toggle="modal" data-bs-target="#viewRecordModal-{{ $record->id }}" title="Xem chi tiết">
                                             <i class="bi bi-eye"></i>
                                         </button>
-                                        <a href="{{ route('admindoctor.invoices.create', ['medical_record_id' => $record->id]) }}" class="btn btn-sm btn-light border text-success rounded-circle" title="Tạo hóa đơn">
-                                            <i class="bi bi-receipt"></i>
-                                        </a>
                                         <a href="{{ route('admindoctor.medicalrecords.index', ['edit_id' => $record->id]) }}" class="btn btn-sm btn-light border text-primary rounded-circle" title="Chỉnh sửa">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
@@ -141,15 +130,6 @@
                                                         <div class="d-flex justify-content-between"><span class="text-muted">Ngày khám:</span> <span class="fw-medium text-dark">{{ \Carbon\Carbon::parse($record->exam_date)->format('d/m/Y') }}</span></div>
                                                         <div class="d-flex justify-content-between"><span class="text-muted">Tái khám:</span> <span class="fw-medium text-danger">{{ $record->follow_up_date ? \Carbon\Carbon::parse($record->follow_up_date)->format('d/m/Y') : 'Không' }}</span></div>
                                                         <div class="d-flex justify-content-between"><span class="text-muted">Dịch vụ:</span> <span class="fw-medium text-dark">{{ $record->service }}</span></div>
-                                                        <div class="d-flex justify-content-between"><span class="text-muted">Chi phí:</span> <span class="fw-medium text-danger">{{ number_format($record->cost, 0) }} đ</span></div>
-                                                        <div class="d-flex justify-content-between">
-                                                            <span class="text-muted">Trạng thái TT:</span> 
-                                                            @if($record->status === 'paid')
-                                                                <span class="text-success fw-medium">Đã thanh toán</span>
-                                                            @else
-                                                                <span class="text-warning fw-medium">Chưa thanh toán</span>
-                                                            @endif
-                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-12">
@@ -237,34 +217,21 @@
                         <div class="col-lg-8">
                             <h6 class="text-secondary fw-semibold border-bottom pb-2 mb-3">Thông tin khám & Chẩn đoán</h6>
                             <div class="row g-3 mb-3">
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label class="form-label text-secondary fw-medium small mb-1">Ngày Khám <span class="text-danger">*</span></label>
                                     <input type="date" name="exam_date" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('exam_date', $editMedicalRecord->exam_date ?? now()->format('Y-m-d')) }}" required>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label class="form-label text-secondary fw-medium small mb-1">Tái khám</label>
                                     <input type="date" name="follow_up_date" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('follow_up_date', $editMedicalRecord->follow_up_date ?? '') }}">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-4">
                                     <label class="form-label text-secondary fw-medium small mb-1">Dịch vụ sử dụng</label>
                                     <input type="text" name="service" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ old('service', $editMedicalRecord->service ?? '') }}" placeholder="Vd: Khám da liễu">
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label text-secondary fw-medium small mb-1">Thanh toán</label>
-                                    <select name="status" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2">
-                                        <option value="unpaid" {{ (isset($editMedicalRecord) && $editMedicalRecord->status == 'unpaid') ? 'selected' : '' }}>Chưa thanh toán</option>
-                                        <option value="paid" {{ (isset($editMedicalRecord) && $editMedicalRecord->status == 'paid') ? 'selected' : '' }}>Đã thanh toán</option>
-                                    </select>
-                                </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label text-secondary fw-medium small mb-1">Chi phí khám / Dịch vụ <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <input type="number" step="any" name="cost" class="form-control bg-light border-0 focus-ring focus-ring-primary py-2" value="{{ isset($editMedicalRecord) ? $editMedicalRecord->cost / 1000 : old('cost') }}" placeholder="Nhập số tiền..." required>
-                                    <span class="input-group-text bg-light border-0 text-secondary px-4 fw-medium">.000 VNĐ</span>
-                                </div>
-                            </div>
+
 
                             <div class="mb-3">
                                 <label class="form-label text-secondary fw-medium small mb-1">Chẩn Đoán Lâm Sàng <span class="text-danger">*</span></label>
@@ -305,6 +272,42 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
           return new bootstrap.Tooltip(tooltipTriggerEl)
         })
+
+        // === Validate: Tái khám phải sau Ngày khám ===
+        const examDateInput = document.querySelector('input[name="exam_date"]');
+        const followUpInput = document.querySelector('input[name="follow_up_date"]');
+
+        if (examDateInput && followUpInput) {
+            function updateFollowUpMin() {
+                const examDate = examDateInput.value;
+                if (examDate) {
+                    // Set min = ngày sau ngày khám
+                    const nextDay = new Date(examDate);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    followUpInput.min = nextDay.toISOString().split('T')[0];
+
+                    // Nếu tái khám đang <= ngày khám thì xóa
+                    if (followUpInput.value && followUpInput.value <= examDate) {
+                        followUpInput.value = '';
+                    }
+                }
+            }
+
+            examDateInput.addEventListener('change', updateFollowUpMin);
+            updateFollowUpMin(); // chạy lần đầu
+
+            // Validate trước khi submit
+            const form = examDateInput.closest('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (followUpInput.value && examDateInput.value && followUpInput.value <= examDateInput.value) {
+                        e.preventDefault();
+                        alert('Ngày tái khám phải sau ngày khám!');
+                        followUpInput.focus();
+                    }
+                });
+            }
+        }
 
         @if(isset($showModal) && $showModal)
         var addRecordModal = new bootstrap.Modal(document.getElementById('addRecordModal'), {

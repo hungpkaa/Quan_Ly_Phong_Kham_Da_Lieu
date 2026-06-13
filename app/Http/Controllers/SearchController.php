@@ -23,7 +23,7 @@ class SearchController extends Controller
             ->get()
             ->map(function ($doctor) {
                 // Đảm bảo ảnh có đường dẫn chính xác
-                $doctor->image = $doctor->image ? asset($doctor->image) : asset('img/default-doctor.jpg');
+                $doctor->image = $doctor->image ? asset($doctor->image) : asset('img/icon-doctor.png');
                 return $doctor;
             });
 
@@ -33,7 +33,7 @@ class SearchController extends Controller
             ->get()
             ->map(function ($service) {
                 // Đảm bảo ảnh có đường dẫn chính xác
-                $service->image = $service->image ? asset($service->image) : asset('img/default-service.jpg');
+                $service->image = $service->image ? asset($service->image) : asset('img/service.webp');
                 return $service;
             });
 

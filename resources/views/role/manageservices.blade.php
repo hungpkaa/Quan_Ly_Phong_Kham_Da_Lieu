@@ -63,7 +63,7 @@
                                     <td class="py-3">
                                         <div class="d-flex justify-content-center">
                                             <img src="{{ asset($service->image) }}" width="80" height="80" style="object-fit: cover;" 
-                                                onerror="this.onerror=null; this.src='{{ asset('img/default.jpg') }}';" 
+                                                onerror="this.onerror=null; this.src='{{ asset('img/service.webp') }}';" 
                                                 class="rounded-3 shadow-sm border">
                                         </div>
                                     </td>
@@ -192,7 +192,7 @@
                 document.getElementById("editServiceForm").action = `/services/${id}/update`;
 
                 let imgPreview = document.getElementById("editServiceImagePreview");
-                imgPreview.src = image ? `/${image}` : "/img/default.jpg";
+                imgPreview.src = image ? `/${image}` : "/img/service.webp";
             });
         });
         

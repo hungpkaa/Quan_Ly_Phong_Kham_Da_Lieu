@@ -77,7 +77,7 @@
                                 </td>
                                 <td class="py-3 text-end fw-semibold text-danger">{{ number_format($invoice->total_amount, 0) }} đ</td>
                                 <td class="py-3 text-center">
-                                    @if($invoice->status === 'Chưa thanh toán')
+                                    @if(!$invoice->isPaid())
                                         <span class="badge bg-warning text-dark bg-opacity-25 border border-warning rounded-pill fw-medium px-2 py-1">Chưa thanh toán</span>
                                     @else
                                         <span class="badge bg-success text-success bg-opacity-10 border border-success rounded-pill fw-medium px-2 py-1"><i class="bi bi-check-circle me-1"></i>Đã thanh toán</span>
@@ -135,11 +135,11 @@
                             <h6 class="text-primary fw-semibold mb-2">Thông tin Hồ sơ Bệnh án #{{ $medicalRecord->id }}</h6>
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Tên Bệnh Nhân</label>
-                                <input type="text" class="form-control form-control-sm bg-white" value="{{ $medicalRecord->name }}" readonly>
+                                <input type="text" class="form-control form-control-sm bg-white" value="{{ optional($medicalRecord->user)->name }}" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Số Điện Thoại</label>
-                                <input type="text" class="form-control form-control-sm bg-white" value="{{ $medicalRecord->phone }}" readonly>
+                                <input type="text" class="form-control form-control-sm bg-white" value="{{ optional($medicalRecord->user)->phone }}" readonly>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label text-secondary fw-medium small mb-1">Ngày Khám</label>
@@ -165,8 +165,8 @@
                         <div class="col-md-6">
                             <label for="status" class="form-label text-secondary fw-medium small mb-1">Trạng Thái Thanh Toán <span class="text-danger">*</span></label>
                             <select name="status" id="status" class="form-select bg-light border-0 focus-ring focus-ring-primary py-2" required>
-                                <option value="Chưa thanh toán">Chưa thanh toán</option>
-                                <option value="Đã thanh toán">Đã thanh toán</option>
+                                <option value="unpaid">Chưa thanh toán</option>
+                                <option value="paid">Đã thanh toán</option>
                             </select>
                         </div>
 
