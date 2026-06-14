@@ -79,6 +79,6 @@ class Appointment extends Model
 
     public function isCancelled()
     {
-        return $this->status === 'cancelled';
+        return in_array($this->status, ['cancelled', 'rejected'], true);
     }
 }

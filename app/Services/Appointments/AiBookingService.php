@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class AiBookingService
@@ -92,7 +93,7 @@ class AiBookingService
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'] ?? ($phone . '@chatbot.local'),
-                'password' => Hash::make('12345678'),
+                'password' => Hash::make(Str::random(32)),
                 'role' => 'patient',
                 'phone' => $phone,
             ]);

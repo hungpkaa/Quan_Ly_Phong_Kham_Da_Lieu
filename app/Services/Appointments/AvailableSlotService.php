@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 class AvailableSlotService
 {
-    private const BLOCKING_STATUSES = ['pending', 'approved'];
+    private const BLOCKING_STATUSES = ['pending', 'approved', 'completed'];
     private const CLINIC_TIMEZONE = 'Asia/Ho_Chi_Minh';
     private const SHIFT_END_TIMES = [
         'morning' => '12:00',

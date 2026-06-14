@@ -106,6 +106,11 @@ class DoctorController extends Controller
         return response()->json($formattedDoctors);
     }
 
+    public function search(Request $request)
+    {
+        return $this->search_doctors_list($request);
+    }
+
     public function showDashboard()
     {
         $doctor = $this->currentDoctor();

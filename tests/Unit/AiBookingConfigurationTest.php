@@ -16,11 +16,11 @@ class AiBookingConfigurationTest extends TestCase
         $this->assertContains('source', $appointment->getFillable());
     }
 
-    public function test_available_slot_service_blocks_pending_and_approved_slots()
+    public function test_available_slot_service_blocks_unfinished_and_completed_slots()
     {
         $service = new AvailableSlotService();
 
-        $this->assertSame(['pending', 'approved'], $service->blockingStatuses());
+        $this->assertSame(['pending', 'approved', 'completed'], $service->blockingStatuses());
     }
 
     public function test_available_slot_service_blocks_past_shift_on_current_day()

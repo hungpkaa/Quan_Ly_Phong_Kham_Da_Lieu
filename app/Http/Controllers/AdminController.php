@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Appointment;
 use App\Models\User;
 use Carbon\Carbon;
-use App\Models\DoctorSchedule;
 use Illuminate\Support\Facades\DB;
 use App\Services\Appointments\AvailableSlotService;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
@@ -312,7 +312,7 @@ class AdminController extends Controller
         $doctors = Doctor::all();
 
         // Truy vấn lịch hẹn với tìm kiếm
-        $appointments = Appointment::with(['doctor', 'user'])
+        $appointments = Appointment::with(['doctor', 'user', 'medicalRecord'])
             ->when($search, function ($query, $search) {
                 return $query->whereHas('user', function($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -398,7 +398,7 @@ class AdminController extends Controller
                 'phone' => $phone,
                 'age' => $request->age,
                 'cccd' => $request->cccd,
-                'password' => Hash::make('12345678'),
+                'password' => Hash::make(Str::random(32)),
                 'role' => 'patient',
             ]);
         }
@@ -569,15 +569,83 @@ class AdminController extends Controller
     public function getDoctorScheduleWithFutureDates($doctorId)
     {
         // Lấy lịch làm việc của bác sĩ
-        $schedules = DoctorSchedule::where('doctor_id', $doctorId)->get();
+        $doctor = Doctor::findOrFail($doctorId);
+        $workingHours = is_array($doctor->working_hours) ? $doctor->working_hours : [];
 
-        if ($schedules->isEmpty()) {
+        if (empty($workingHours)) {
+            return response()->json(['error' => 'Bác sĩ chưa có lịch làm việc.'], 404);
+        }
+
+        $slotService = app(AvailableSlotService::class);
+        $dayLabels = [
+            'Monday' => 'Thứ Hai',
+            'Tuesday' => 'Thứ Ba',
+            'Wednesday' => 'Thứ Tư',
+            'Thursday' => 'Thứ Năm',
+            'Friday' => 'Thứ Sáu',
+            'Saturday' => 'Thứ Bảy',
+            'Sunday' => 'Chủ Nhật',
+        ];
+        $shiftLabels = [
+            'morning' => '08:00 - 12:00',
+            'afternoon' => '14:00 - 18:00',
+        ];
+
+        $formattedSchedules = [];
+        $seen = [];
+        $startDate = Carbon::today('Asia/Ho_Chi_Minh');
+
+        for ($dayOffset = 0; $dayOffset < 42; $dayOffset++) {
+            $date = $startDate->copy()->addDays($dayOffset);
+            $dayName = $date->format('l');
+
+            foreach ($workingHours as $entry) {
+                if (($entry['day'] ?? null) !== $dayName) {
+                    continue;
+                }
+
+                $entryShift = (string) ($entry['shift'] ?? '');
+                $shifts = $entryShift === 'both' ? ['morning', 'afternoon'] : [$entryShift];
+
+                foreach ($shifts as $shift) {
+                    if (!isset($shiftLabels[$shift])) {
+                        continue;
+                    }
+
+                    $key = $date->toDateString() . '|' . $shift;
+                    if (isset($seen[$key])) {
+                        continue;
+                    }
+
+                    if (!$slotService->isShiftStillBookable($date->toDateString(), $shift)) {
+                        continue;
+                    }
+
+                    if (!$slotService->isSlotAvailable($doctor->id, $date->toDateString(), $shift)) {
+                        continue;
+                    }
+
+                    $seen[$key] = true;
+                    $formattedSchedules[] = [
+                        'id' => $key,
+                        'display' => ($dayLabels[$dayName] ?? $dayName) . ' - ' . $shiftLabels[$shift] . ' (' . $date->format('d/m/Y') . ')',
+                        'date' => $date->toDateString(),
+                        'shift' => $shift,
+                    ];
+                }
+            }
+        }
+
+        return response()->json($formattedSchedules);
+
+
+        if (false && false) {
             return response()->json(['error' => 'Không có lịch làm việc'], 404);
         }
 
         $formattedSchedules = [];
 
-        foreach ($schedules as $schedule) {
+        foreach ([] as $schedule) {
             $currentDate = now(); // Ngày hiện tại
 
             for ($i = 0; $i < 6; $i++) { // Lấy 6 tuần tiếp theo của lịch làm việc
@@ -599,6 +667,10 @@ class AdminController extends Controller
     {
         $doctor = Doctor::findOrFail($request->doctor_id);
         $selectedDate = $request->query('date');
+        $ignoreAppointmentId = $request->query('ignore_appointment_id')
+            ? (int) $request->query('ignore_appointment_id')
+            : null;
+        $slotService = app(AvailableSlotService::class);
         $dayOfWeek = date('l', strtotime($selectedDate)); // Lấy thứ trong tuần (Monday, Tuesday, ...)
 
 
@@ -613,10 +685,14 @@ class AdminController extends Controller
 
         foreach ($workingHours as $entry) {
             if (isset($entry['day'], $entry['shift']) && $entry['day'] === $dayOfWeek) {
-                if ($entry['shift'] === 'morning' || $entry['shift'] === 'both') {
+                if (($entry['shift'] === 'morning' || $entry['shift'] === 'both')
+                    && $slotService->isShiftStillBookable($selectedDate, 'morning')
+                    && $slotService->isSlotAvailable($doctor->id, $selectedDate, 'morning', $ignoreAppointmentId)) {
                     $availableShifts['morning'] = true;
                 }
-                if ($entry['shift'] === 'afternoon' || $entry['shift'] === 'both') {
+                if (($entry['shift'] === 'afternoon' || $entry['shift'] === 'both')
+                    && $slotService->isShiftStillBookable($selectedDate, 'afternoon')
+                    && $slotService->isSlotAvailable($doctor->id, $selectedDate, 'afternoon', $ignoreAppointmentId)) {
                     $availableShifts['afternoon'] = true;
                 }
             }

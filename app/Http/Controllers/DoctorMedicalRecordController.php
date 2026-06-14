@@ -106,7 +106,7 @@ class DoctorMedicalRecordController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)),
                 'role' => 'patient',
                 'age' => $request->age,
                 'cccd' => $request->cccd,
@@ -135,6 +135,10 @@ class DoctorMedicalRecordController extends Controller
                 'total_amount' => $cost,
                 'status' => 'unpaid',
             ]);
+        }
+
+        if ($appointment) {
+            $appointment->update(['status' => 'completed']);
         }
 
         return redirect()->route('admindoctor.medicalrecords.index')

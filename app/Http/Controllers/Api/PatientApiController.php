@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class PatientApiController extends Controller
@@ -45,7 +46,7 @@ class PatientApiController extends Controller
             'phone' => $validated['phone'],
             'age' => $validated['age'] ?? null,
             'cccd' => $validated['cccd'] ?? null,
-            'password' => Hash::make($validated['password'] ?? '12345678'),
+            'password' => Hash::make($validated['password'] ?? Str::random(32)),
             'role' => 'patient',
         ]);
 

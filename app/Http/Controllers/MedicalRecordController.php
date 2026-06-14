@@ -106,7 +106,7 @@ class MedicalRecordController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
+                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)),
                 'role' => 'patient',
                 'age' => $request->age,
                 'cccd' => $request->cccd,

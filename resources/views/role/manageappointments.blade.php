@@ -196,7 +196,9 @@
                                         @endif
                                     </td>
                                     <td class="py-3 text-center">
-                                        @if($appointment->status === 'pending')
+                                        @if($appointment->medicalRecord || $appointment->status === 'completed')
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-medium">Đã có hồ sơ</span>
+                                        @elseif($appointment->status === 'pending')
                                             <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle rounded-pill px-3 py-2 fw-medium">Chờ duyệt</span>
                                         @elseif($appointment->status === 'approved')
                                             <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill px-3 py-2 fw-medium">Đã duyệt</span>

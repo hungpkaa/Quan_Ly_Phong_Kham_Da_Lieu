@@ -437,7 +437,7 @@
                 <div class="appt-grid">
                     <div class="appt-field">
                         <label for="appointment_date"><i class="bi bi-calendar-date"></i> Ngày hẹn</label>
-                        <input type="date" name="appointment_date" id="appointment_date" class="form-control" value="{{ old('appointment_date') }}" required>
+                        <input type="date" name="appointment_date" id="appointment_date" class="form-control" min="{{ now()->toDateString() }}" value="{{ old('appointment_date') }}" required>
                     </div>
 
                     <div class="appt-field">

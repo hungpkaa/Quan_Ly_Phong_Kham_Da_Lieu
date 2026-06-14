@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\Doctor;
+use App\Models\User;
 use App\Services\Appointments\AvailableSlotService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentController extends Controller
 {
@@ -14,6 +18,7 @@ class AppointmentController extends Controller
     {
         $doctors = Doctor::all();
         $specialties = Doctor::distinct()->pluck('specialty');
+
         return view('appointmentcreate', compact('specialties', 'doctors'));
     }
 
@@ -23,7 +28,7 @@ class AppointmentController extends Controller
             'doctor_id' => 'required|exists:doctors,id',
             'name' => 'required|string|max:255',
             'email' => 'required|email',
-            'phone' => 'required|string',
+            'phone' => 'required|string|max:20',
             'age' => 'required|integer|min:1',
             'cccd' => 'required|string|max:20',
             'specialty' => 'required|string|max:255',
@@ -39,9 +44,8 @@ class AppointmentController extends Controller
                 ->with('error', 'Bác sĩ đã chọn không thuộc chuyên khoa/dịch vụ này. Vui lòng chọn lại bác sĩ phù hợp.');
         }
 
-        $slotService = app(AvailableSlotService::class);
         $slotError = $this->appointmentSlotError(
-            $slotService,
+            app(AvailableSlotService::class),
             (int) $request->doctor_id,
             $request->appointment_date,
             $request->shift
@@ -51,52 +55,9 @@ class AppointmentController extends Controller
             return back()->withInput()->with('error', $slotError);
         }
 
-        if (Auth::check() && Auth::user()->role === 'patient') {
-            $user = Auth::user();
-            
-            // Update user info if missing or changed (only for authenticated user)
-            $user->update([
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'age' => $request->age,
-                'cccd' => $request->cccd,
-            ]);
-        } else {
-            $user = \App\Models\User::where('phone', $request->phone)->first();
-
-            if ($user && $user->role !== 'patient') {
-                return back()
-                    ->withInput()
-                    ->with('error', 'Số điện thoại này đang thuộc tài khoản không phải bệnh nhân. Vui lòng dùng số điện thoại khác hoặc liên hệ phòng khám.');
-            }
-
-            if (!$user) {
-                // If not found by phone, check email
-                $userByEmail = \App\Models\User::where('email', $request->email)->first();
-                if ($userByEmail && $userByEmail->role !== 'patient') {
-                    return back()
-                        ->withInput()
-                        ->with('error', 'Email này đang thuộc tài khoản không phải bệnh nhân. Vui lòng dùng email khác.');
-                }
-                
-                if (!$userByEmail) {
-                    $user = \App\Models\User::create([
-                        'name' => $request->name,
-                        'email' => $request->email,
-                        'phone' => $request->phone,
-                        'age' => $request->age,
-                        'cccd' => $request->cccd,
-                        'password' => \Illuminate\Support\Facades\Hash::make('12345678'),
-                        'role' => 'patient',
-                    ]);
-                } else {
-                    $user = $userByEmail;
-                }
-            }
-            // For guest users, we intentionally DO NOT update their existing profile
-            // to prevent unauthorized data overwriting. We just use their user ID.
-        }
+        $user = Auth::check() && Auth::user()->role === 'patient'
+            ? $this->patientForAuthenticatedBooking($request)
+            : $this->patientForGuestBooking($request);
 
         Appointment::create([
             'user_id' => $user->id,
@@ -108,7 +69,104 @@ class AppointmentController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('appointments.create')->with('success', 'Đặt lịch khám thành công! Vui lòng chờ phòng khám xác nhận duyệt lịch.');
+        return redirect()
+            ->route('appointments.create')
+            ->with('success', 'Đặt lịch khám thành công! Vui lòng chờ phòng khám xác nhận duyệt lịch.');
+    }
+
+    public function searchAppointments(Request $request)
+    {
+        return redirect()->route('doctor.schedule', [
+            'filter' => $request->input('filter', 'today'),
+            'query' => $request->input('query'),
+        ]);
+    }
+
+    public function index()
+    {
+        return redirect()->route('doctor.schedule');
+    }
+
+    private function patientForAuthenticatedBooking(Request $request): User
+    {
+        $user = Auth::user();
+        $phone = trim((string) $request->phone);
+        $email = trim((string) $request->email);
+
+        if (User::where('phone', $phone)->where('id', '!=', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'phone' => 'Số điện thoại này đang thuộc một tài khoản khác. Vui lòng kiểm tra lại thông tin.',
+            ]);
+        }
+
+        if (User::where('email', $email)->where('id', '!=', $user->id)->exists()) {
+            throw ValidationException::withMessages([
+                'email' => 'Email này đang thuộc một tài khoản khác. Vui lòng kiểm tra lại thông tin.',
+            ]);
+        }
+
+        $user->update([
+            'name' => $request->name,
+            'email' => $email,
+            'phone' => $phone,
+            'age' => $request->age,
+            'cccd' => $request->cccd,
+        ]);
+
+        return $user;
+    }
+
+    private function patientForGuestBooking(Request $request): User
+    {
+        $phone = trim((string) $request->phone);
+        $email = trim((string) $request->email);
+
+        $userByPhone = User::where('phone', $phone)->first();
+        $userByEmail = User::where('email', $email)->first();
+
+        if ($userByPhone && $userByPhone->role !== 'patient') {
+            throw ValidationException::withMessages([
+                'phone' => 'Số điện thoại này đang thuộc tài khoản không phải bệnh nhân. Vui lòng dùng số điện thoại khác hoặc liên hệ phòng khám.',
+            ]);
+        }
+
+        if ($userByEmail && $userByEmail->role !== 'patient') {
+            throw ValidationException::withMessages([
+                'email' => 'Email này đang thuộc tài khoản không phải bệnh nhân. Vui lòng dùng email khác.',
+            ]);
+        }
+
+        if ($userByPhone && $userByEmail && $userByPhone->id !== $userByEmail->id) {
+            throw ValidationException::withMessages([
+                'email' => 'Email và số điện thoại đang thuộc hai bệnh nhân khác nhau. Vui lòng kiểm tra lại thông tin.',
+            ]);
+        }
+
+        if ($userByPhone && $userByPhone->email !== $email) {
+            throw ValidationException::withMessages([
+                'email' => 'Email không khớp với bệnh nhân có số điện thoại này. Vui lòng đăng nhập hoặc liên hệ phòng khám để cập nhật thông tin.',
+            ]);
+        }
+
+        if ($userByEmail && $userByEmail->phone !== $phone) {
+            throw ValidationException::withMessages([
+                'phone' => 'Số điện thoại không khớp với bệnh nhân có email này. Vui lòng đăng nhập hoặc liên hệ phòng khám để cập nhật thông tin.',
+            ]);
+        }
+
+        if ($userByPhone || $userByEmail) {
+            return $userByPhone ?: $userByEmail;
+        }
+
+        return User::create([
+            'name' => $request->name,
+            'email' => $email,
+            'phone' => $phone,
+            'age' => $request->age,
+            'cccd' => $request->cccd,
+            'password' => Hash::make(Str::random(32)),
+            'role' => 'patient',
+        ]);
     }
 
     private function appointmentSlotError(
@@ -131,41 +189,5 @@ class AppointmentController extends Controller
         }
 
         return null;
-    }
-
-    public function searchAppointments(Request $request)
-    {
-        return redirect()->route('doctor.schedule', [
-            'filter' => $request->input('filter', 'today'),
-            'query' => $request->input('query'),
-        ]);
-
-        $doctor = Auth::user()->doctor;
-
-        if (!$doctor) {
-            return redirect()->route('home.index')->with('error', 'Không tìm thấy thông tin bác sĩ.');
-        }
-
-        $query = $request->input('query');
-
-        $appointments = Appointment::where('doctor_id', $doctor->id)
-            ->where(function ($appointmentQuery) use ($query) {
-                $appointmentQuery->whereHas('user', function ($q) use ($query) {
-                    $q->where('name', 'LIKE', "%$query%");
-                })
-                ->orWhere('appointment_date', 'LIKE', "%$query%")
-                ->orWhere('status', 'LIKE', "%$query%");
-            })
-            ->orderBy('appointment_date', 'asc')
-            ->get();
-
-        return view('role.schedule', compact('appointments'));
-    }
-
-    public function index()
-    {
-        $appointments = Appointment::orderBy('appointment_date', 'asc')->get();
-
-        return view('role.schedule', compact('appointments'));
     }
 }
